@@ -27,6 +27,7 @@ More here:
 
 - https://github.com/quytttb/immortalwrt-mt798x-rebase - if you already have the USB mod - 2026-10-30
 - https://github.com/quytttb/immortalwrt-mt798x-rebase/releases/tag/v2.4.5 - 2026-10-16
+- Wifi Roaming and SQM Anti-Bufferfloat https://gist.github.com/hashcott/68e337ac52f3410e6d19a177fb5bc1bf 
 
 ### KeeneticOS
 
