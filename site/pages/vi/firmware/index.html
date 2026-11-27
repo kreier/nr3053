@@ -96,3 +96,12 @@ python3 ../keeneticos-nr3053/tools/verify_fw.py bin/mt7981/*_Firmware-KN-3811-5.
 <p>
   Lưu ý: Tính năng auto-update đã bị tắt (firmware KN-3811 chính hãng <strong>không</strong> chạy trên NR3053); mọi nâng cấp đều nạp qua U-Boot Web Failsafe.
 </p>
+
+<h2 id="lo-trinh-openwrt-chinh-thuc">4. Lộ trình hỗ trợ OpenWrt chính thức (<code>ubootmod</code>)</h2>
+<p>
+  Toàn bộ phần cứng lõi (<code>MT7981BA</code>, <code>MT7976CN</code>, <code>MT7531AE</code>, <code>DS35Q2GBS</code>) đều đã có driver sẵn trên nhánh <code>mediatek/filogic</code> của OpenWrt chính thức, nên NR3053 hoàn toàn có thể đóng góp PR hỗ trợ chính thức theo chuẩn <code>ubootmod</code> (một vùng Native UBI 234 MiB kèm volume <code>recovery</code> tích hợp sẵn trong NAND).
+</p>
+<p>
+  Xem lộ trình 8 bước đầy đủ (test RAM qua UART, cấu hình U-Boot/DTS, khôi phục ROM gốc và gửi PR lên <code>openwrt/openwrt</code>) tại
+  <a href="https://github.com/kreier/nr3053/blob/main/docs/upstream-openwrt-roadmap.md" target="_blank" rel="noopener"><code>docs/upstream-openwrt-roadmap.md</code></a>.
+</p>

@@ -117,6 +117,9 @@ Stock U-Boot (`2022.07-rc3`) includes a built-in Web Failsafe server:
 ### KeeneticOS 5.01 (DIY Port)
 - [`linhsayshii/keeneticos-nr3053`](https://github.com/linhsayshii/keeneticos-nr3053) — SDK patches & [Bootloader `v32`](https://github.com/linhsayshii/keeneticos-nr3053/releases/tag/v32) (2026-10-20)
 
+### Upstream OpenWrt (`ubootmod`) Roadmap
+- [docs/upstream-openwrt-roadmap.md](docs/upstream-openwrt-roadmap.md) — Hardware unbrick (`BootROM` + `mtk_uartboot`), stock-revert notes, bootloader comparison, and the 8-step roadmap to build and submit official upstream OpenWrt `mediatek/filogic` (`ubootmod` + Native UBI with built-in `recovery` volume) support.
+
 ---
 
 ## Building the GitHub Pages Site Locally

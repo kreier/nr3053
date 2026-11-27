@@ -96,3 +96,12 @@ python3 ../keeneticos-nr3053/tools/verify_fw.py bin/mt7981/*_Firmware-KN-3811-5.
 <p>
   Note: Auto-updates are disabled (official KN-3811 images will <strong>not</strong> boot on NR3053), and upgrades are flashed through U-Boot Web Failsafe.
 </p>
+
+<h2 id="upstream-roadmap">4. Roadmap: Official Upstream OpenWrt (<code>ubootmod</code>)</h2>
+<p>
+  Because all core hardware (<code>MT7981BA</code>, <code>MT7976CN</code>, <code>MT7531AE</code>, <code>DS35Q2GBS</code>) is already supported by mainline Linux and OpenWrt <code>mediatek/filogic</code>, the NR3053 is a strong candidate for an official upstream <code>viettel_nr3053</code> (<code>ubootmod</code> + single 234 MiB Native UBI with built-in <code>recovery</code> volume) PR to <code>openwrt/openwrt</code>.
+</p>
+<p>
+  See the complete 8-step development, UART RAM-boot test, stock-revert, and PR submission guide in
+  <a href="https://github.com/kreier/nr3053/blob/main/docs/upstream-openwrt-roadmap.md" target="_blank" rel="noopener"><code>docs/upstream-openwrt-roadmap.md</code></a>.
+</p>
