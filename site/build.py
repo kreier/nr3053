@@ -218,17 +218,20 @@ def validate_partitions(data: dict) -> None:
     chip = data["chip"]
     total_kib = chip["total_kib"]
     total_bytes = total_kib * 1024
-    cursor = 0
-    sum_kib = 0
-    for p in data["partitions"]:
-        if p["start"] != cursor:
-            raise ValueError(
-                f"Non-contiguous partition {p['name']}: expected 0x{cursor:08x}, got 0x{p['start']:08x}"
-            )
-        cursor += p["kib"] * 1024
-        sum_kib += p["kib"]
-    if sum_kib != total_kib or cursor != total_bytes:
-        raise ValueError(f"Partition sum mismatch: {sum_kib} KiB != {total_kib} KiB")
+    for key in ("partitions", "stock_partitions"):
+        if key not in data:
+            continue
+        cursor = 0
+        sum_kib = 0
+        for p in data[key]:
+            if p["start"] != cursor:
+                raise ValueError(
+                    f"Non-contiguous {key} entry {p['name']}: expected 0x{cursor:08x}, got 0x{p['start']:08x}"
+                )
+            cursor += p["kib"] * 1024
+            sum_kib += p["kib"]
+        if sum_kib != total_kib or cursor != total_bytes:
+            raise ValueError(f"{key} sum mismatch: {sum_kib} KiB != {total_kib} KiB")
     for mode, layout in data["layouts"].items():
         seg_cursor = 0
         seg_sum = 0
@@ -243,10 +246,10 @@ def validate_partitions(data: dict) -> None:
             raise ValueError(f"Layout '{mode}' sums to {seg_sum} KiB, expected {total_kib} KiB")
 
 
-def render_partition_rows(data: dict, lang: str) -> str:
+def render_partition_rows(data: dict, lang: str, key: str = "partitions", include_used: bool = False) -> str:
     total_kib = data["chip"]["total_kib"]
     rows = []
-    for p in data["partitions"]:
+    for p in data[key]:
         start = p["start"]
         end = start + p["kib"] * 1024
         kib = p["kib"]
@@ -261,12 +264,20 @@ def render_partition_rows(data: dict, lang: str) -> str:
         name_text = p.get("name_vi") if lang == "vi" and p.get("name_vi") else p["name"]
         desc_text = p.get("desc_vi") if lang == "vi" and p.get("desc_vi") else p["desc"]
         name_html = f"<strong>{html.escape(name_text)}</strong>" if p.get("highlight") else html.escape(name_text)
+        used_td = ""
+        if include_used:
+            if "used_kib" in p:
+                u = p["used_kib"]
+                u_str = f"{u / 1024:.2f} MiB" if u >= 1024 else f"{u:.1f} KiB"
+                used_td = f'\n        <td class="num">{u_str} ({p["fill_pct"]:.1f}%)</td>'
+            else:
+                used_td = '\n        <td class="num">—</td>'
         rows.append(
             f'      <tr class="{cls}" data-mtd="{html.escape(p["mtd"])}">\n'
             f'        <td class="mono">{html.escape(p["mtd"])}</td>\n'
             f'        <td class="mono"><span class="swatch" style="{swatch_style};vertical-align:middle;margin-right:6px;"></span>{name_html}</td>\n'
             f'        <td class="mono">0x{start:08x}–0x{end:08x}</td>\n'
-            f'        <td class="num">{size_str}</td>\n'
+            f'        <td class="num">{size_str}</td>{used_td}\n'
             f'        <td class="num">{pct:.2f}%</td>\n'
             f'        <td>{html.escape(desc_text)}</td>\n'
             f"      </tr>"
@@ -433,7 +444,11 @@ def build() -> None:
             body = src_file.read_text(encoding="utf-8")
             body = body.replace("{{ROOT}}", root)
             if item.get("embed_partitions"):
-                body = body.replace("{{PARTITION_ROWS}}", render_partition_rows(data, lang))
+                body = body.replace("{{PARTITION_ROWS}}", render_partition_rows(data, lang, "partitions"))
+                body = body.replace(
+                    "{{STOCK_PARTITION_ROWS}}",
+                    render_partition_rows(data, lang, "stock_partitions", include_used=True),
+                )
                 extra_scripts = (
                     f'  <script id="partition-data" type="application/json">'
                     f'{json.dumps(data, separators=(",", ":"))}</script>'

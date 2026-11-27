@@ -61,6 +61,10 @@ py unlock_nr3053.py --password YOUR_SERIAL_NUMBER</code></pre></div>
 # mtd5: 02000000 00020000 "firmware"
 # mtd6: 02000000 00020000 "firmware2"
 # mtd7: 08e00000 00020000 "rootfs_data"
+# mtd8: 01800000 00020000 "rootfs_data_backup"
+# mtd9: 00200000 00020000 "Factory_backup"
+# mtd10: 00200000 00020000 "fip2"
+# mtd11: 00000000 00020000 "reserved"
 
 # Dump critical boot &amp; calibration partitions to /tmp
 dd if=/dev/mtd1 of=/tmp/stock_BL2.bin

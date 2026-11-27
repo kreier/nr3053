@@ -271,7 +271,9 @@
   }
 
   partRows.forEach((row) => {
-    const p = DATA.partitions.find((item) => item.mtd === row.dataset.mtd);
+    const isStock = Boolean(row.closest("#stock-part-rows"));
+    const pool = isStock && DATA.stock_partitions ? DATA.stock_partitions : DATA.partitions;
+    const p = pool.find((item) => item.mtd === row.dataset.mtd);
     if (!p) return;
     row.addEventListener("mouseenter", () => showInspector(p));
     row.addEventListener("click", () => showInspector(p));

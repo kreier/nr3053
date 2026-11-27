@@ -4,6 +4,20 @@
   và hướng dẫn xử lý các lỗi phổ biến nhất khi nạp firmware qua Web Failsafe, SCP, TFTP hoặc UART trên Viettel SDMC NR3053.
 </p>
 
+<h2 id="nr3053-helper"><code>scripts/nr3053_helper.py</code> (Kiểm tra phần cứng, Sao lưu &amp; Phân tích MTD)</h2>
+<p>
+  Tiện ích tích hợp sẵn trong kho lưu trữ này (thuần thư viện chuẩn Python 3 — không cần cài <code>pip</code>). Hỗ trợ cả <strong>Telnet (cổng 23)</strong> lẫn <strong>SSH (cổng 22)</strong>, truyền thẳng từng phân vùng MTD về máy tính Linux mà không làm đầy RAM router, xác minh SHA-256/MD5 và phân tích nội dung dump offline:
+</p>
+<div class="code-block"><pre><code># 1. Đọc thông số phần cứng, NAND, UBI và DHCP lease (chỉ đọc)
+python3 scripts/nr3053_helper.py probe --host 10.1.1.1
+
+# 2. Sao lưu mtd1..mtd10 (240 MiB) + router_info.txt, kiểm tra SHA-256 và nén .7z
+#    (Thêm --include-full nếu muốn dump cả mtd0 raw 256 MiB gồm 16 MiB đuôi NMBM)
+python3 scripts/nr3053_helper.py backup --host 10.1.1.1 --out ./backups/nr3053-stock --7z
+
+# 3. Phân tích dung lượng thực tế &amp; nhận diện nội dung offline (tự ẩn biến nhạy cảm)
+python3 scripts/nr3053_helper.py inspect-backup ./backups/nr3053-stock</code></pre></div>
+
 <h2 id="nr3053-tools">Bộ công cụ <code>quytttb/nr3053-tools</code></h2>
 <p>
   Các tiện ích Python chạy trên máy tính dành riêng cho router Viettel SDMC NR3053:

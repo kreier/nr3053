@@ -101,6 +101,57 @@
   </table>
 </div>
 
+<h2 id="bang-phan-vung-goc">Bảng phân vùng ROM gốc Viettel đã xác minh (<code>mtd0</code>–<code>mtd11</code>)</h2>
+<p>
+  Đọc trực tiếp từ phần cứng NR3053 thực tế và bản sao lưu MTD đã xác minh SHA-256 (ROM gốc OpenWrt <code>21.02-SNAPSHOT r0-855a6718f</code> / Linux <code>5.4.194 aarch64</code>, <code>U-Boot 2022.07-rc3 (Sep 20 2025)</code>, thông số NAND: page <code>2048 B</code> / erase block <code>128 KiB</code> / OOB <code>128 B</code> / ECC <code>8-bit</code> / <code>0</code> bad block).
+  <code>mtd0</code> (<code>"spi0.0"</code>) đại diện toàn bộ chip raw 256,00 MiB, <code>mtd1</code>–<code>mtd10</code> chiếm đúng <strong>240,00 MiB</strong> (<code>0x00000000</code>–<code>0x0f000000</code>), còn <code>mtd11</code> (<code>"reserved"</code>) hiển thị <code>0</code> B vì MediaTek NMBM giữ <strong>16,00 MiB</strong> cuối chip.
+</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>MTD</th>
+        <th>Tên</th>
+        <th>Dải địa chỉ</th>
+        <th class="num">Kích thước</th>
+        <th class="num">Đã dùng (Non-FF)</th>
+        <th class="num">% / 256 MiB</th>
+        <th>Nội dung &amp; Vai trò đã xác minh</th>
+      </tr>
+    </thead>
+    <tbody id="stock-part-rows">
+{{STOCK_PARTITION_ROWS}}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2">Tổng cộng (<code>mtd0</code> raw = 256 MiB)</td>
+        <td class="mono">0x00000000–0x10000000</td>
+        <td class="num">256.00 MiB</td>
+        <td class="num">~44,4 MiB</td>
+        <td class="num">100.00%</td>
+        <td>240,00 MiB (93,75%) qua <code>mtd1</code>–<code>mtd10</code> · 16,00 MiB (6,25%) đuôi NMBM</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<h3 id="ubi-va-cap-sao-luu-goc">Các vùng UBI gốc, cặp sao lưu trùng khớp &amp; <code>u-boot-env</code></h3>
+<ul>
+  <li><strong>4 vùng chứa UBI gốc (LEB 124 KiB):</strong>
+    <code>ubi0</code> trên <code>mtd5</code> (<code>kernel</code> 6,0 MiB + <code>rootfs</code> 20,1 MiB, SquashFS <code>/rom</code> 13,0 MiB);
+    <code>ubi1</code> trên <code>mtd6</code> (bản sao giống hệt);
+    <code>ubi2</code> trên <code>mtd7</code> (<code>rootfs_data</code> 128,1 MiB UBIFS, mount <code>/overlay</code> khả dụng 116,6 MiB);
+    <code>ubi3</code> trên <code>mtd8</code> (<code>rootfs_data_backup</code> 18,0 MiB).
+  </li>
+  <li><strong>Các cặp phân vùng dự phòng trùng khớp SHA-256:</strong>
+    <code>mtd3</code> (<code>Factory</code>) ≡ <code>mtd9</code> (<code>Factory_backup</code>),
+    <code>mtd4</code> (<code>FIP</code>) ≡ <code>mtd10</code> (<code>fip2</code>), và
+    <code>mtd5</code> (<code>firmware</code>) ≡ <code>mtd6</code> (<code>firmware2</code>).
+    Chỉ <code>mtd7</code> (<code>rootfs_data</code>) và <code>mtd8</code> (<code>rootfs_data_backup</code>) khác nhau.
+  </li>
+  <li><strong>Giải mã <code>u-boot-env</code> (<code>mtd2</code>, CRC32 hợp lệ):</strong> Gồm <code>upgrade_result=0</code> và <code>bootimage=2</code> (biến chọn slot firmware A/B).</li>
+</ul>
+
 <h2 id="khac-biet-mtd">Tại sao số thứ tự MTD trên ROM gốc lệch đi 1</h2>
 <p>
   Trên ROM gốc Viettel, <code>mtd0</code> là toàn bộ chip NAND raw 256 MiB (<code>"spi0.0"</code>), nên các phân vùng con bắt đầu từ <code>mtd1</code>.
@@ -121,14 +172,14 @@
       <tr><td class="mono">0x100000–0x200000</td><td><code>u-boot-env</code> (<code>mtd2</code>)</td><td><code>u-boot-env</code> (<code>mtd1</code>)</td><td>Env cũ; ImmortalWrt lưu env mới trong volume UBI.</td></tr>
       <tr><td class="mono">0x200000–0x400000</td><td><code>Factory</code> (<code>mtd3</code>)</td><td><code>Factory</code> (<code>mtd2</code>)</td><td><strong>TUYỆT ĐỐI KHÔNG GHI ĐÈ</strong> — chứa RF EEPROM &amp; MAC.</td></tr>
       <tr class="uboot-row"><td class="mono">0x400000–0x600000</td><td><code>FIP</code> (<code>mtd4</code>)</td><td><code>FIP</code> (<code>mtd3</code>)</td><td><strong>Ghi file FIP U-Boot ImmortalWrt vào đây</strong> (cùng offset <code>0x400000</code>).</td></tr>
-      <tr><td class="mono">0x600000–0x0f000000</td><td><code>firmware</code> (32M) + <code>firmware2</code> (32M) + <code>rootfs_data</code> (142M)</td><td><code>ubi</code> (234 MiB Native UBI)</td><td>Khác layout hệ điều hành — không thể chạy <code>sysupgrade</code> thẳng từ ROM gốc.</td></tr>
+      <tr><td class="mono">0x600000–0x0f000000</td><td><code>firmware</code> (32M) + <code>firmware2</code> (32M) + <code>rootfs_data</code> (142M) + <code>rootfs_data_backup</code> (24M) + <code>Factory_backup</code> (2M) + <code>fip2</code> (2M)</td><td><code>ubi</code> (234 MiB Native UBI)</td><td>Khác layout hệ điều hành — không thể chạy <code>sysupgrade</code> thẳng từ ROM gốc; hãy sao lưu <code>mtd1</code>–<code>mtd10</code> trước.</td></tr>
     </tbody>
   </table>
 </div>
 
 <div class="callout danger">
-  <div class="callout-title">Cảnh báo Native UBI so với NMBM cũ</div>
-  ROM gốc Viettel sử dụng lớp quản lý bad-block <strong>NMBM</strong> cùng hai vùng <code>firmware</code>/<code>firmware2</code> phẳng,
-  trong khi ImmortalWrt 25.12 sử dụng <strong>Native UBI</strong> (không NMBM) rộng 234 MiB. Khi U-Boot ImmortalWrt định dạng lại vùng UBI,
-  toàn bộ dữ liệu OS cũ phía trên <code>0x600000</code> sẽ bị xóa. Luôn sao lưu các phân vùng gốc (nhất là <code>Factory</code>) trước khi thực hiện.
+  <div class="callout-title">Cảnh báo Native UBI đơn so với 4× UBI + NMBM gốc</div>
+  ROM gốc Viettel dùng lớp quản lý bad-block <strong>NMBM</strong> cùng 4 vùng chứa UBI riêng lẻ (<code>ubi0</code>–<code>ubi3</code> trên <code>mtd5</code>–<code>mtd8</code>) và bản sao <code>Factory_backup</code> (<code>mtd9</code>), <code>fip2</code> (<code>mtd10</code>),
+  trong khi ImmortalWrt 25.12 gộp toàn bộ <code>0x00600000</code>–<code>0x0f000000</code> thành một vùng <strong>Native UBI 234 MiB</strong> duy nhất (không NMBM). Khi U-Boot ImmortalWrt định dạng lại vùng UBI,
+  toàn bộ phân vùng gốc phía trên <code>0x600000</code> (gồm cả <code>Factory_backup</code> và <code>fip2</code>) sẽ bị xóa. Luôn sao lưu <code>mtd1</code>–<code>mtd10</code> (nhất là <code>Factory</code>) trước khi chuyển đổi.
 </div>

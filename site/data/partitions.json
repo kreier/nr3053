@@ -6,14 +6,21 @@
     "erase_block_kib": 128,
     "total_blocks": 2048,
     "page_bytes": 2048,
+    "oob_bytes": 128,
+    "ecc_bits": 8,
+    "bad_blocks": 0,
     "allocated_kib": 245760,
     "unallocated_kib": 16384,
-    "source": "Verified from target/linux/mediatek/dts-ext/mt7981b-viettel-nr3053.dts (quytttb/immortalwrt-mt798x-rebase)"
+    "stock_os": "OpenWrt 21.02-SNAPSHOT r0-855a6718f (Linux 5.4.194 aarch64, Feb 12 2026)",
+    "stock_uboot": "U-Boot 2022.07-rc3 (Sep 20 2025 - 14:29:44 +0800)",
+    "source": "Verified from mt7981b-viettel-nr3053.dts (ImmortalWrt) and live NR3053 MTD backup dumps (mtd1..mtd10, SHA-256 verified)"
   },
   "fip_payload": {
     "slot_kib": 2048,
     "immortalwrt_v250_bytes": 938352,
-    "immortalwrt_v250_file": "immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip"
+    "immortalwrt_v250_file": "immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip",
+    "stock_non_ff_kib": 713.3,
+    "stock_span_kib": 731.8
   },
   "partitions": [
     {
@@ -79,6 +86,151 @@
       "hatch": true,
       "desc": "16.00 MiB (128 erase blocks, 0x0f000000–0x10000000) reserved at the end of flash for NAND bad-block table (BBT) and legacy NMBM tail clearance.",
       "desc_vi": "16,00 MiB (128 block xóa, 0x0f000000–0x10000000) dự phòng cuối chip flash cho bảng bad-block (BBT) và tránh đụng vùng bảng NMBM cũ."
+    }
+  ],
+  "stock_partitions": [
+    {
+      "mtd": "mtd1",
+      "name": "BL2",
+      "start": 0,
+      "kib": 1024,
+      "used_kib": 223.9,
+      "span_kib": 232.7,
+      "fill_pct": 21.9,
+      "group": "boot",
+      "color": "var(--c-boot)",
+      "desc": "MediaTek BL2/BRLYT preloader (223.9 KiB non-FF / 232.7 KiB span = 21.9%). Initializes DDR3L and Dosilicon DS35Q2GBS SPI NAND (2K page, 128 B OOB, 8-bit ECC), then loads FIP.",
+      "desc_vi": "Preloader BL2/BRLYT của MediaTek (223,9 KiB dữ liệu / span 232,7 KiB = 21,9%). Khởi tạo DDR3L và SPI NAND Dosilicon DS35Q2GBS (page 2K, OOB 128 B, ECC 8-bit) rồi nạp FIP."
+    },
+    {
+      "mtd": "mtd2",
+      "name": "u-boot-env",
+      "start": 1048576,
+      "kib": 1024,
+      "used_kib": 1024.0,
+      "span_kib": 1024.0,
+      "fill_pct": 100.0,
+      "group": "config",
+      "color": "var(--c-cfg)",
+      "desc": "Stock U-Boot environment (zero-padded 1 MiB, CRC32 valid): stores 2 active variables — upgrade_result=0 and bootimage=2 (dual-bank firmware slot selector).",
+      "desc_vi": "Biến môi trường U-Boot gốc (đệm 0x00 đủ 1 MiB, CRC32 hợp lệ): lưu 2 biến — upgrade_result=0 và bootimage=2 (chọn slot firmware khởi động A/B)."
+    },
+    {
+      "mtd": "mtd3",
+      "name": "Factory",
+      "start": 2097152,
+      "kib": 2048,
+      "used_kib": 640.0,
+      "span_kib": 640.0,
+      "fill_pct": 31.2,
+      "group": "art",
+      "color": "var(--c-art)",
+      "desc": "Primary Factory Wi-Fi RF calibration EEPROM (magic 0x7981, 640.0 KiB used = 31.2%) and MAC addresses. SHA-256 IDENTICAL to mtd9 (Factory_backup). NEVER erase!",
+      "desc_vi": "Bản chính EEPROM hiệu chuẩn Wi-Fi RF (magic 0x7981, dùng 640,0 KiB = 31,2%) và địa chỉ MAC. Trùng SHA-256 tuyệt đối với mtd9 (Factory_backup). TUYỆT ĐỐI KHÔNG XÓA!"
+    },
+    {
+      "mtd": "mtd4",
+      "name": "FIP",
+      "start": 4194304,
+      "kib": 2048,
+      "used_kib": 713.3,
+      "span_kib": 731.8,
+      "fill_pct": 34.8,
+      "group": "uboot",
+      "color": "var(--c-uboot)",
+      "highlight": true,
+      "desc": "TF-A FIP TOC @0x0 + stock U-Boot 2022.07-rc3 (Sep 20 2025, 713.3 KiB non-FF / 731.8 KiB span = 34.8%). SHA-256 IDENTICAL to mtd10 (fip2). Write ImmortalWrt FIP here when migrating.",
+      "desc_vi": "TF-A FIP TOC @0x0 + U-Boot gốc 2022.07-rc3 (Sep 20 2025, 713,3 KiB dữ liệu / span 731,8 KiB = 34,8%). Trùng SHA-256 tuyệt đối với mtd10 (fip2). Ghi FIP ImmortalWrt vào đây khi chuyển đổi."
+    },
+    {
+      "mtd": "mtd5",
+      "name": "firmware",
+      "start": 6291456,
+      "kib": 32768,
+      "used_kib": 16694.3,
+      "span_kib": 32642.0,
+      "fill_pct": 50.9,
+      "group": "slot1",
+      "color": "var(--c-slot1)",
+      "desc": "Primary UBI slot ubi0 (256 PEBs, 16.30 MiB non-FF = 50.9%): kernel (6.0 MiB / 50 LEBs) + rootfs (20.1 MiB / 166 LEBs, SquashFS @0x3c1000, 13.0 MiB mounted /rom). SHA-256 IDENTICAL to mtd6 (firmware2).",
+      "desc_vi": "Slot UBI chính ubi0 (256 PEB, 16,30 MiB dữ liệu = 50,9%): kernel (6,0 MiB / 50 LEB) + rootfs (20,1 MiB / 166 LEB, SquashFS @0x3c1000, 13,0 MiB mount /rom). Trùng SHA-256 với mtd6 (firmware2)."
+    },
+    {
+      "mtd": "mtd6",
+      "name": "firmware2",
+      "start": 39845888,
+      "kib": 32768,
+      "used_kib": 16694.3,
+      "span_kib": 32642.0,
+      "fill_pct": 50.9,
+      "group": "slot2",
+      "color": "var(--c-plugin)",
+      "desc": "Secondary UBI slot ubi1 (256 PEBs, 16.30 MiB non-FF = 50.9%): kernel (6.0 MiB) + rootfs (20.1 MiB). SHA-256 IDENTICAL mirror of mtd5 (selected when bootimage=2).",
+      "desc_vi": "Slot UBI thứ hai ubi1 (256 PEB, 16,30 MiB dữ liệu = 50,9%): kernel (6,0 MiB) + rootfs (20,1 MiB). Bản sao trùng SHA-256 với mtd5 (được chọn khi bootimage=2)."
+    },
+    {
+      "mtd": "mtd7",
+      "name": "rootfs_data",
+      "start": 73400320,
+      "kib": 145408,
+      "used_kib": 7798.4,
+      "span_kib": 145282.0,
+      "fill_pct": 5.4,
+      "group": "vendor",
+      "color": "var(--c-vendor)",
+      "desc": "Primary UBI overlay container ubi2 (1,136 PEBs, 7.62 MiB non-FF = 5.4%): single UBIFS volume rootfs_data (1,058 LEBs / 128.1 MiB; mounted /overlay, 116.6 MiB usable).",
+      "desc_vi": "Vùng chứa UBI overlay chính ubi2 (1.136 PEB, 7,62 MiB dữ liệu = 5,4%): một volume UBIFS rootfs_data (1.058 LEB / 128,1 MiB; mount /overlay, khả dụng 116,6 MiB)."
+    },
+    {
+      "mtd": "mtd8",
+      "name": "rootfs_data_backup",
+      "start": 222298112,
+      "kib": 24576,
+      "used_kib": 688.9,
+      "span_kib": 24450.0,
+      "fill_pct": 2.8,
+      "group": "plugin",
+      "color": "var(--c-plugin)",
+      "desc": "Secondary UBI data container ubi3 (192 PEBs, 688.9 KiB non-FF = 2.8%): single volume rootfs_data_backup (149 LEBs / 18.0 MiB); distinct from mtd7.",
+      "desc_vi": "Vùng chứa UBI dữ liệu phụ ubi3 (192 PEB, 688,9 KiB dữ liệu = 2,8%): một volume rootfs_data_backup (149 LEB / 18,0 MiB); khác nội dung với mtd7."
+    },
+    {
+      "mtd": "mtd9",
+      "name": "Factory_backup",
+      "start": 247463936,
+      "kib": 2048,
+      "used_kib": 640.0,
+      "span_kib": 640.0,
+      "fill_pct": 31.2,
+      "group": "art",
+      "color": "var(--c-art)",
+      "desc": "Redundant backup copy of Factory EEPROM (magic 0x7981, 640.0 KiB = 31.2%). Verified SHA-256 IDENTICAL to mtd3. Overwritten if migrating to 234 MiB ImmortalWrt UBI.",
+      "desc_vi": "Bản sao dự phòng của Factory EEPROM (magic 0x7981, 640,0 KiB = 31,2%). Đã xác minh trùng SHA-256 với mtd3. Bị ghi đè nếu chuyển sang ImmortalWrt UBI 234 MiB."
+    },
+    {
+      "mtd": "mtd10",
+      "name": "fip2",
+      "start": 249561088,
+      "kib": 2048,
+      "used_kib": 713.3,
+      "span_kib": 731.8,
+      "fill_pct": 34.8,
+      "group": "uboot",
+      "color": "var(--c-uboot)",
+      "desc": "Redundant backup FIP slot (713.3 KiB non-FF / 731.8 KiB span = 34.8%). Verified SHA-256 IDENTICAL to mtd4. Overwritten if migrating to 234 MiB ImmortalWrt UBI.",
+      "desc_vi": "Slot FIP dự phòng thứ hai (713,3 KiB dữ liệu / span 731,8 KiB = 34,8%). Đã xác minh trùng SHA-256 với mtd4. Bị ghi đè nếu chuyển sang ImmortalWrt UBI 234 MiB."
+    },
+    {
+      "mtd": "mtd11 / —",
+      "name": "reserved (NMBM / BBT)",
+      "name_vi": "reserved (NMBM / BBT)",
+      "start": 251658240,
+      "kib": 16384,
+      "group": "unalloc",
+      "color": "var(--c-unalloc)",
+      "hatch": true,
+      "desc": "Reported as 0 B in /proc/mtd (mtd11 \"reserved\") while MediaTek NMBM reserves the upper 16.00 MiB (0x0f000000–0x10000000) for NAND bad-block management.",
+      "desc_vi": "Hiển thị 0 B trong /proc/mtd (mtd11 \"reserved\") vì lớp MediaTek NMBM giữ 16,00 MiB cuối chip (0x0f000000–0x10000000) để quản lý bad-block NAND."
     }
   ],
   "layouts": {
@@ -156,9 +308,9 @@
       ]
     },
     "stock": {
-      "label": "Stock Viettel ROM (Dual Flat + NMBM)",
-      "summary": "Factory Viettel firmware layout (mtd0 = full 256 MiB raw spi0.0): dual 32 MiB flat firmware slots plus 142 MiB rootfs_data and NMBM.",
-      "summary_vi": "Layout ROM gốc Viettel (mtd0 = toàn bộ 256 MiB raw spi0.0): hai slot firmware phẳng 32 MiB, 142 MiB rootfs_data và lớp NMBM.",
+      "label": "Stock Viettel ROM (4× UBI + Backups + NMBM)",
+      "summary": "Verified from live NR3053 dumps (OpenWrt 21.02-SNAPSHOT / Linux 5.4.194, U-Boot 2022.07-rc3): 6 MiB boot/Factory, dual mirrored 32 MiB UBI firmware slots (ubi0/ubi1), 142 MiB ubi2 overlay, 24 MiB ubi3 backup, mirrored Factory_backup & fip2, and 16 MiB NMBM tail.",
+      "summary_vi": "Xác minh từ dump thực tế (OpenWrt 21.02-SNAPSHOT / Linux 5.4.194, U-Boot 2022.07-rc3): 6 MiB boot/Factory, 2 slot UBI firmware 32 MiB giống hệt nhau (ubi0/ubi1), 142 MiB overlay ubi2, 24 MiB ubi3 dự phòng, bản sao Factory_backup & fip2, và 16 MiB đuôi NMBM.",
       "segments": [
         {
           "id": "s_bl2_env",
@@ -169,8 +321,8 @@
           "kib": 2048,
           "color": "var(--c-boot)",
           "label": "",
-          "desc": "Stock BL2 (mtd1, 1 MiB) + u-boot-env (mtd2, 1 MiB). Same offsets as ImmortalWrt.",
-          "desc_vi": "BL2 gốc (mtd1, 1 MiB) + u-boot-env (mtd2, 1 MiB). Cùng địa chỉ vật lý với ImmortalWrt."
+          "desc": "Stock BL2 (mtd1, 223.9 KiB used / 1 MiB) + u-boot-env (mtd2, 1 MiB CRC-valid: upgrade_result=0, bootimage=2).",
+          "desc_vi": "BL2 gốc (mtd1, dùng 223,9 KiB / 1 MiB) + u-boot-env (mtd2, 1 MiB CRC hợp lệ: upgrade_result=0, bootimage=2)."
         },
         {
           "id": "s_factory",
@@ -181,8 +333,8 @@
           "kib": 2048,
           "color": "var(--c-art)",
           "label": "",
-          "desc": "Stock mtd3 Factory (2 MiB @ 0x00200000). Back up via SSH before making changes!",
-          "desc_vi": "Phân vùng mtd3 Factory gốc (2 MiB tại 0x00200000). Hãy sao lưu qua SSH trước khi thay đổi!"
+          "desc": "Stock mtd3 Factory (640.0 KiB used / 2 MiB, magic 0x7981 @ 0x00200000; identical to mtd9). Back up first!",
+          "desc_vi": "Phân vùng mtd3 Factory gốc (dùng 640,0 KiB / 2 MiB, magic 0x7981 tại 0x00200000; trùng khớp mtd9). Luôn sao lưu trước!"
         },
         {
           "id": "s_fip",
@@ -194,62 +346,99 @@
           "color": "var(--c-uboot)",
           "highlight": true,
           "label": "",
-          "desc": "Stock mtd4 FIP (U-Boot 2022.07-rc3 with built-in Web Failsafe). Write ImmortalWrt FIP here when migrating.",
-          "desc_vi": "Phân vùng mtd4 FIP gốc (U-Boot 2022.07-rc3 tích hợp Web Failsafe). Ghi file FIP ImmortalWrt vào đây khi chuyển đổi."
+          "desc": "Stock mtd4 FIP (713.3 KiB non-FF / 731.8 KiB span; U-Boot 2022.07-rc3 with Web Failsafe; identical to mtd10).",
+          "desc_vi": "Phân vùng mtd4 FIP gốc (713,3 KiB dữ liệu / span 731,8 KiB; U-Boot 2022.07-rc3 có Web Failsafe; trùng khớp mtd10)."
         },
         {
           "id": "s_fw1",
           "mtd": "mtd5",
           "members": ["mtd4"],
-          "name": "firmware (32 MiB)",
+          "name": "firmware · ubi0 (32 MiB)",
           "start": 6291456,
           "kib": 32768,
           "color": "var(--c-slot1)",
           "label": "fw1 · 12.5%",
           "label_vi": "fw1 · 12,5%",
-          "desc": "Primary stock firmware slot (32 MiB flat partition, 0x00600000–0x02600000). Also used by stock-U-Boot OpenWrt 24.10 builds.",
-          "desc_vi": "Slot firmware gốc chính (32 MiB dạng phẳng, 0x00600000–0x02600000). Bản OpenWrt 24.10 chạy trên U-Boot gốc cũng dùng vùng này."
+          "desc": "Primary UBI slot ubi0 (16.30 MiB used / 32 MiB): kernel (6 MiB) + rootfs (20.1 MiB SquashFS). SHA-256 identical to mtd6.",
+          "desc_vi": "Slot UBI chính ubi0 (dùng 16,30 MiB / 32 MiB): kernel (6 MiB) + rootfs (20,1 MiB SquashFS). Trùng SHA-256 với mtd6."
         },
         {
           "id": "s_fw2",
           "mtd": "mtd6",
           "members": ["mtd4"],
-          "name": "firmware2 (32 MiB)",
+          "name": "firmware2 · ubi1 (32 MiB)",
           "start": 39845888,
           "kib": 32768,
           "color": "var(--c-plugin)",
           "label": "fw2 · 12.5%",
           "label_vi": "fw2 · 12,5%",
-          "desc": "Secondary stock firmware slot (32 MiB, 0x02600000–0x04600000).",
-          "desc_vi": "Slot firmware gốc dự phòng (32 MiB, 0x02600000–0x04600000)."
+          "desc": "Secondary UBI slot ubi1 (16.30 MiB used / 32 MiB, active when bootimage=2). SHA-256 identical to mtd5.",
+          "desc_vi": "Slot UBI phụ ubi1 (dùng 16,30 MiB / 32 MiB, đang dùng khi bootimage=2). Trùng SHA-256 với mtd5."
         },
         {
           "id": "s_rootfs_data",
           "mtd": "mtd7",
           "members": ["mtd4"],
-          "name": "rootfs_data (142 MiB)",
+          "name": "rootfs_data · ubi2 (142 MiB)",
           "start": 73400320,
           "kib": 145408,
           "color": "var(--c-vendor)",
           "label": "rootfs_data · 142 MiB (55.5%)",
           "label_vi": "rootfs_data · 142 MiB (55,5%)",
-          "desc": "Stock writable data partition (142 MiB / 0x08e00000, 0x04600000–0x0d400000).",
-          "desc_vi": "Phân vùng dữ liệu ghi của ROM gốc (142 MiB / 0x08e00000, 0x04600000–0x0d400000)."
+          "desc": "Primary UBIFS overlay ubi2 (7.62 MiB non-FF / 5.4% full; 128.1 MiB volume mounted at /overlay).",
+          "desc_vi": "Phân vùng UBIFS overlay chính ubi2 (7,62 MiB dữ liệu / 5,4%; volume 128,1 MiB mount tại /overlay)."
+        },
+        {
+          "id": "s_rootfs_data_bak",
+          "mtd": "mtd8",
+          "members": ["mtd4"],
+          "name": "rootfs_data_backup · ubi3 (24 MiB)",
+          "start": 222298112,
+          "kib": 24576,
+          "color": "var(--c-slot2)",
+          "label": "bak · 9.4%",
+          "label_vi": "bak · 9,4%",
+          "desc": "Secondary UBI data container ubi3 (688.9 KiB non-FF / 2.8% full; 18.0 MiB volume, distinct from mtd7).",
+          "desc_vi": "Vùng chứa UBI phụ ubi3 (688,9 KiB dữ liệu / 2,8%; volume 18,0 MiB, khác nội dung mtd7)."
+        },
+        {
+          "id": "s_factory_bak",
+          "mtd": "mtd9",
+          "members": ["mtd4"],
+          "name": "Factory_backup (2 MiB)",
+          "start": 247463936,
+          "kib": 2048,
+          "color": "var(--c-art)",
+          "label": "",
+          "desc": "Redundant backup copy of Factory EEPROM (640.0 KiB used, magic 0x7981 @ 0x0ec00000; SHA-256 identical to mtd3).",
+          "desc_vi": "Bản sao dự phòng Factory EEPROM (dùng 640,0 KiB, magic 0x7981 tại 0x0ec00000; trùng SHA-256 với mtd3)."
+        },
+        {
+          "id": "s_fip2",
+          "mtd": "mtd10",
+          "members": ["mtd4"],
+          "name": "fip2 (2 MiB)",
+          "start": 249561088,
+          "kib": 2048,
+          "color": "var(--c-uboot)",
+          "label": "",
+          "desc": "Secondary FIP slot (713.3 KiB non-FF / 731.8 KiB span @ 0x0ee00000; SHA-256 identical to mtd4).",
+          "desc_vi": "Slot FIP dự phòng thứ hai (713,3 KiB dữ liệu / span 731,8 KiB tại 0x0ee00000; trùng SHA-256 với mtd4)."
         },
         {
           "id": "s_nmbm",
-          "mtd": "—",
+          "mtd": "mtd11 / —",
           "members": ["—"],
-          "name": "Vendor / NMBM Tail (44 MiB)",
-          "name_vi": "Dữ liệu hãng / NMBM (44 MiB)",
-          "start": 222298112,
-          "kib": 45056,
+          "name": "reserved / NMBM Tail (16 MiB)",
+          "name_vi": "reserved / NMBM (16 MiB)",
+          "start": 251658240,
+          "kib": 16384,
           "color": "var(--c-unalloc)",
           "hatch": true,
-          "label": "17.2%",
-          "label_vi": "17,2%",
-          "desc": "Remaining stock vendor partitions and MediaTek NMBM bad-block mapping table at the tail of flash.",
-          "desc_vi": "Các phân vùng phụ còn lại của nhà mạng và bảng ánh xạ bad-block NMBM của MediaTek ở cuối chip flash."
+          "label": "6.3%",
+          "label_vi": "6,3%",
+          "desc": "mtd11 \"reserved\" (0 B exposed in /proc/mtd) + 16 MiB tail (0x0f000000–0x10000000) claimed by MediaTek NMBM bad-block mapping.",
+          "desc_vi": "mtd11 \"reserved\" (hiển thị 0 B trong /proc/mtd) + 16 MiB cuối chip (0x0f000000–0x10000000) dùng cho bảng ánh xạ bad-block NMBM của MediaTek."
         }
       ]
     },

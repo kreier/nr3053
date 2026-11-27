@@ -61,3 +61,12 @@ __pycache__/
 # Generated GitHub Pages site output
 site/dist/
 
+# Local router MTD backups (contain private Factory RF calibration & MACs)
+backups/
+nr3053-backup*/
+*.7z
+*.bin
+*.fip
+*.itb
+
+

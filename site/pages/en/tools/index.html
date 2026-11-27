@@ -4,6 +4,20 @@
   and solutions for the most common flashing, networking, TFTP, and UART recovery issues on the Viettel SDMC NR3053.
 </p>
 
+<h2 id="nr3053-helper"><code>scripts/nr3053_helper.py</code> (Read-Only Probe, Backup &amp; Inspector)</h2>
+<p>
+  Included in this repository (Python 3 standard library only — zero <code>pip</code> packages). Supports both <strong>Telnet (port 23)</strong> and <strong>SSH (port 22)</strong>, streams all MTD partitions directly to your Linux host without filling router RAM, verifies every file with SHA-256/MD5, and analyzes backup dumps offline:
+</p>
+<div class="code-block"><pre><code># 1. Read-only hardware, NAND geometry, UBI, and DHCP lease probe
+python3 scripts/nr3053_helper.py probe --host 10.1.1.1
+
+# 2. Stream mtd1..mtd10 (240 MiB) + router_info.txt, verify SHA-256, and pack .7z
+#    (Add --include-full to also dump raw 256 MiB mtd0 including the 16 MiB NMBM tail)
+python3 scripts/nr3053_helper.py backup --host 10.1.1.1 --out ./backups/nr3053-stock --7z
+
+# 3. Offline content &amp; fill-ratio analysis (redacts sensitive env variables)
+python3 scripts/nr3053_helper.py inspect-backup ./backups/nr3053-stock</code></pre></div>
+
 <h2 id="nr3053-tools"><code>quytttb/nr3053-tools</code> Reference</h2>
 <p>
   Host-side Python utilities built specifically for the Viettel SDMC NR3053:
