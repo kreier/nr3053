@@ -1,0 +1,120 @@
+<h1>3. Cứu Brick qua UART &amp; Nạp Firmware TFTP</h1>
+<p class="lead">
+  Nhờ có sẵn <strong>cụm 4 chân UART in nhãn rõ ràng</strong> và BootROM cố định trong chip MediaTek, bạn có thể chạy thử
+  <code>initramfs-recovery.itb</code> hoàn toàn trên RAM mà không động đến NAND, hoặc cứu sống hoàn toàn máy bị lỗi U-Boot / BL2 bằng <code>mtk_uartboot</code>.
+</p>
+
+<h2 id="so-do-uart">Đấu nối UART &amp; Thông số Serial</h2>
+<div class="callout danger">
+  <div class="callout-title">Chỉ dùng mức 3.3 V TTL — Không nối chân <code>VCC</code></div>
+  Sử dụng mạch chuyển USB-TTL mức <strong>3.3 V</strong> (CP2102, FT232RL, CH340 đặt 3.3 V). Không dùng mức 5 V và bỏ trống chân <code>VCC</code> trên bo mạch router. Đấu chéo TX/RX: <code>TX</code> mạch ↔ <code>RX</code> bo mạch, <code>RX</code> mạch ↔ <code>TX</code> bo mạch, <code>GND</code> ↔ <code>GND</code>.
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Chân trên PCB (Góc trên trái)</th>
+        <th>Nối với mạch USB-TTL</th>
+        <th>Cấu hình Serial</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="mono"><strong>GND</strong></td><td><code>GND</code> mạch nạp</td><td rowspan="4"><strong>115200 baud</strong><br />8 data bits, No parity, 1 stop bit (<code>115200 8N1</code>)<br />Flow control: None</td></tr>
+      <tr><td class="mono"><strong>TX</strong></td><td><code>RX</code> mạch nạp</td></tr>
+      <tr><td class="mono"><strong>RX</strong></td><td><code>TX</code> mạch nạp</td></tr>
+      <tr><td class="mono"><strong>VCC</strong></td><td><em>Không đấu nối</em></td></tr>
+    </tbody>
+  </table>
+</div>
+<p>
+  Xem vị trí cụm chân UART góc trên bên trái trong <a href="../hardware/#kham-pha-ben-trong">ảnh mổ xẻ mặt trước PCB</a>.
+</p>
+
+<h2 id="chuan-bi-tftp">Bước 1: Thiết lập TFTP Server &amp; IP tĩnh</h2>
+<p>
+  Cắm dây mạng từ máy tính vào cổng <strong>LAN</strong> của NR3053 (không cắm WAN) và đặt IP tĩnh máy tính là <strong><code>192.168.1.254/24</code></strong> (để trống Gateway/DNS, tắt VPN).
+</p>
+
+<h3 id="tftp-linux">Linux (<code>tftpd-hpa</code> + <code>picocom</code>)</h3>
+<div class="code-block"><pre><code>sudo apt install tftpd-hpa picocom
+sudo mkdir -p /srv/tftp
+# Chép file .itb / .fip / .bin vào /srv/tftp, chỉnh TFTP_DIRECTORY="/srv/tftp" trong /etc/default/tftpd-hpa
+sudo systemctl restart tftpd-hpa
+
+sudo ip addr flush dev eth0
+sudo ip addr add 192.168.1.254/24 dev eth0
+sudo ip link set eth0 up</code></pre></div>
+
+<h3 id="tftp-windows">Windows (<code>Tftpd64</code> + <code>PuTTY</code>)</h3>
+<ul>
+  <li>Tải <a href="https://p.junod.nu/tftpd64/" target="_blank" rel="noopener">Tftpd64</a>, chạy bằng quyền <strong>Administrator</strong> và cho phép qua Windows Firewall (cổng UDP 69).</li>
+  <li>Ở tab <strong>Tftp Server</strong>, chọn <strong>Current Directory</strong> tới thư mục chứa firmware và <strong>Server interfaces</strong> là card mạng đang đặt IP <code>192.168.1.254</code> (không chọn <code>127.0.0.1</code>).</li>
+  <li>Lưu sẵn một session <strong>PuTTY</strong> chế độ Serial: cổng COM tương ứng (xem Device Manager), tốc độ <code>115200</code>, 8N1, Flow control None.</li>
+</ul>
+
+<h2 id="mtk-uartboot">Bước 2: Nạp U-Boot vào RAM bằng <code>mtk_uartboot</code> (Cứu Brick)</h2>
+<p>
+  Nếu U-Boot trên NAND vẫn chạy bình thường, bạn chỉ cần mở <code>picocom -b 115200 /dev/ttyUSB0</code> (hoặc PuTTY), bật nguồn router và nhấn phím bất kỳ khi thấy <code>Hit any key to stop autoboot</code>.
+</p>
+<p>
+  Nếu máy bị <strong>brick</strong> (chỉ chạy BootROM hoặc im lặng), dùng <code>mtk_uartboot</code> (<a href="https://github.com/quytttb/mtk_uartboot/releases" target="_blank" rel="noopener">bản Windows/Linux</a>) cùng BL2 RAM payload <code>bl2-viettel-nr3053-ram.bin</code> (từ <a href="https://github.com/quytttb/bl-mt798x-dhcpd/releases" target="_blank" rel="noopener">quytttb/bl-mt798x-dhcpd Releases</a>) và <code>immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip</code>.
+</p>
+
+<div class="callout warn">
+  <div class="callout-title">Bố cục 2 cửa sổ (Tại mỗi thời điểm chỉ 1 phần mềm chiếm cổng Serial)</div>
+  Đặt sẵn 2 cửa sổ cạnh nhau: <strong>Cửa sổ 1</strong> chạy <code>mtk_uartboot</code> và <strong>Cửa sổ 2</strong> gõ sẵn <code>picocom</code> / mở sẵn <code>PuTTY</code> (<strong>chưa bấm Enter / Open</strong>). Ngay khi Cửa sổ 1 hiện <code>FIP received</code>, bấm <code>Ctrl+C</code> ở Cửa sổ 1 rồi mở ngay Cửa sổ 2 trong vòng 1–2 giây!
+</div>
+
+<h3 id="uartboot-linux">Lệnh trên Linux</h3>
+<div class="code-block"><pre><code># Cửa sổ 2 (gõ sẵn, CHƯA bấm Enter):
+#   sudo picocom -b 115200 /dev/ttyUSB0
+
+# Cửa sổ 1 (rút nguồn trước, chạy lệnh rồi cắm nguồn khi thấy "Handshake..."):
+sudo ./mtk_uartboot -s /dev/ttyUSB0 \
+  -p bl2-viettel-nr3053-ram.bin \
+  -f immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip \
+  -a</code></pre></div>
+
+<h3 id="uartboot-windows">Lệnh trên Windows (CMD)</h3>
+<div class="code-block"><pre><code>mtk_uartboot.exe -s COM3 -p bl2-viettel-nr3053-ram.bin -a -f immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip</code></pre></div>
+<p>
+  Nếu mạch USB-TTL bị treo ở tốc độ 921600, thêm cờ <code>--bl2-load-baudrate 115200</code>. Lưu ý <code>mtk_uartboot</code> chỉ nạp U-Boot <strong>vào RAM</strong>, không tự ý ghi đè lên NAND.
+</p>
+
+<h2 id="tftp-boot-ram">Tùy chọn A: Boot thử <code>initramfs-recovery.itb</code> trên RAM</h2>
+<p>Đặt file <code>immortalwrt-mediatek-filogic-viettel_nr3053-initramfs-recovery.itb</code> vào thư mục TFTP. Trong U-Boot gõ <code>bootmenu</code> → chọn <strong><code>[2] Boot system via TFTP</code></strong>, hoặc chạy thủ công:</p>
+<div class="code-block"><pre><code>setenv serverip 192.168.1.254
+setenv ipaddr   192.168.1.1
+tftpboot 0x46000000 immortalwrt-mediatek-filogic-viettel_nr3053-initramfs-recovery.itb
+bootm 0x46000000#config-1</code></pre></div>
+<p>ImmortalWrt sẽ chạy hoàn toàn trên RAM; rút điện cắm lại máy sẽ trở về trạng thái cũ trên NAND.</p>
+
+<h2 id="tftp-cai-nand">Tùy chọn B: Cài đặt vĩnh viễn vào NAND &amp; Phục hồi Bootloader</h2>
+<p>Đặt file <code>immortalwrt-mediatek-filogic-viettel_nr3053-squashfs-sysupgrade.itb</code> vào thư mục TFTP. Trong U-Boot gõ <code>bootmenu</code> → chọn <strong><code>[5] Load production system via TFTP then write to NAND</code></strong>, hoặc lệnh thủ công:</p>
+<div class="code-block"><pre><code>setenv serverip 192.168.1.254
+setenv ipaddr   192.168.1.1
+tftpboot 0x46000000 immortalwrt-mediatek-filogic-viettel_nr3053-squashfs-sysupgrade.itb
+
+ubi part ubi
+ubi check fit &amp;&amp; ubi remove fit
+ubi create fit $filesize dynamic
+ubi write 0x46000000 fit $filesize
+ubi read 0x46000000 fit &amp;&amp; bootm 0x46000000#config-1</code></pre></div>
+
+<h3 id="nap-lai-fip-bl2">Ghi lại FIP (hoặc BL2) qua TFTP</h3>
+<div class="code-block"><pre><code># Phục hồi/nâng cấp FIP (bootmenu [7])
+tftpboot 0x46000000 immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip
+mtd erase FIP
+mtd write FIP 0x46000000
+
+# Chỉ làm khi BL2 trên NAND bị lỗi (bootmenu [8] — RỦI RO CAO)
+tftpboot 0x46000000 immortalwrt-mediatek-filogic-viettel_nr3053-preloader.bin
+mtd erase BL2
+mtd write BL2 0x46000000</code></pre></div>
+
+<h3 id="xu-ly-nmbm">Xử lý xung đột bảng NMBM cũ</h3>
+<p>Nếu UBI không gắn được do còn sót bảng NMBM từ firmware cũ, hãy định dạng lại vùng UBI ngay trong console U-Boot:</p>
+<div class="code-block"><pre><code>ubi part ubi
+run ubi_format</code></pre></div>
+<p>Router sẽ tự khởi động lại, sau đó bạn tiến hành Tùy chọn B (hoặc Web Failsafe) như bình thường.</p>

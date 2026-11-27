@@ -1,0 +1,378 @@
+{
+  "chip": {
+    "model": "Dosilicon DS35Q2GBS",
+    "total_mib": 256,
+    "total_kib": 262144,
+    "erase_block_kib": 128,
+    "total_blocks": 2048,
+    "page_bytes": 2048,
+    "allocated_kib": 245760,
+    "unallocated_kib": 16384,
+    "source": "Verified from target/linux/mediatek/dts-ext/mt7981b-viettel-nr3053.dts (quytttb/immortalwrt-mt798x-rebase)"
+  },
+  "fip_payload": {
+    "slot_kib": 2048,
+    "immortalwrt_v250_bytes": 938352,
+    "immortalwrt_v250_file": "immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip"
+  },
+  "partitions": [
+    {
+      "mtd": "mtd0",
+      "name": "BL2",
+      "start": 0,
+      "kib": 1024,
+      "group": "boot",
+      "color": "var(--c-boot)",
+      "desc": "ARM Trusted Firmware BL2 Preloader (SPI-NAND SPL, mtd1 on stock ROM) — initializes DDR3L and Dosilicon DS35Q2GBS SPI NAND, then loads FIP. High brick risk; avoid overwriting unless required.",
+      "desc_vi": "Preloader BL2 của ARM Trusted Firmware (mtd1 trên ROM gốc) — khởi tạo RAM DDR3L và SPI NAND Dosilicon DS35Q2GBS rồi nạp FIP. Rủi ro brick cao; không ghi đè trừ khi thật sự cần."
+    },
+    {
+      "mtd": "mtd1",
+      "name": "u-boot-env",
+      "start": 1048576,
+      "kib": 1024,
+      "group": "config",
+      "color": "var(--c-cfg)",
+      "desc": "Legacy U-Boot environment partition (mtd2 on stock ROM). ImmortalWrt stores active U-Boot env inside UBI volumes (ubootenv / ubootenv2).",
+      "desc_vi": "Phân vùng biến môi trường U-Boot gốc (mtd2 trên ROM gốc). ImmortalWrt lưu env U-Boot mới bên trong các volume UBI (ubootenv / ubootenv2)."
+    },
+    {
+      "mtd": "mtd2",
+      "name": "Factory",
+      "start": 2097152,
+      "kib": 2048,
+      "group": "art",
+      "color": "var(--c-art)",
+      "desc": "Factory Wi-Fi RF calibration EEPROM (0x0..0x5000) and device MAC addresses (offset 0x4 LAN/gmac0, 0x0a WAN; mtd3 on stock ROM). NEVER erase — always back up first!",
+      "desc_vi": "Dữ liệu hiệu chuẩn sóng Wi-Fi RF EEPROM (0x0..0x5000) và địa chỉ MAC máy (offset 0x4 LAN/gmac0, 0x0a WAN; mtd3 trên ROM gốc). TUYỆT ĐỐI KHÔNG XÓA — luôn sao lưu trước!"
+    },
+    {
+      "mtd": "mtd3",
+      "name": "FIP",
+      "start": 4194304,
+      "kib": 2048,
+      "group": "uboot",
+      "color": "var(--c-uboot)",
+      "highlight": true,
+      "fip_kib": 916.4,
+      "desc": "Firmware Image Package — ATF BL31 + U-Boot (same physical offset 0x400000 on stock mtd4 and ImmortalWrt mtd3). ImmortalWrt v2.5.0 FIP is 916.4 KiB (44.7% of slot).",
+      "desc_vi": "Gói ảnh Firmware Image Package — ATF BL31 + U-Boot (cùng địa chỉ vật lý 0x400000 trên mtd4 gốc và mtd3 ImmortalWrt). File FIP v2.5.0 nặng 916,4 KiB (44,7% dung lượng vùng)."
+    },
+    {
+      "mtd": "mtd4",
+      "name": "ubi",
+      "start": 6291456,
+      "kib": 239616,
+      "group": "slot2",
+      "color": "var(--c-slot2)",
+      "desc": "Native UBI container (234.00 MiB / 0x0ea00000) holding the ImmortalWrt FIT image (fit), writable overlay (rootfs_data), U-Boot env volumes (ubootenv / ubootenv2), and optional recovery volume.",
+      "desc_vi": "Vùng chứa Native UBI (234,00 MiB / 0x0ea00000) chứa ảnh hệ điều hành FIT (fit), phân vùng overlay ghi dữ liệu (rootfs_data), biến môi trường U-Boot (ubootenv / ubootenv2) và volume recovery tùy chọn."
+    },
+    {
+      "mtd": "—",
+      "name": "(reserved / BBT)",
+      "name_vi": "(dự phòng / BBT)",
+      "start": 251658240,
+      "kib": 16384,
+      "group": "unalloc",
+      "color": "var(--c-unalloc)",
+      "hatch": true,
+      "desc": "16.00 MiB (128 erase blocks, 0x0f000000–0x10000000) reserved at the end of flash for NAND bad-block table (BBT) and legacy NMBM tail clearance.",
+      "desc_vi": "16,00 MiB (128 block xóa, 0x0f000000–0x10000000) dự phòng cuối chip flash cho bảng bad-block (BBT) và tránh đụng vùng bảng NMBM cũ."
+    }
+  ],
+  "layouts": {
+    "immortalwrt": {
+      "label": "ImmortalWrt 25.12 (Native UBI)",
+      "summary": "Recommended layout from mt7981b-viettel-nr3053.dts: identical 6 MiB boot/Factory header plus a single 234 MiB Native UBI pool.",
+      "summary_vi": "Layout khuyến nghị từ mt7981b-viettel-nr3053.dts: giữ nguyên 6 MiB vùng boot/Factory đầu chip và gộp 234 MiB thành một vùng Native UBI duy nhất.",
+      "segments": [
+        {
+          "id": "bl2_env",
+          "mtd": "mtd0–mtd1",
+          "members": ["mtd0", "mtd1"],
+          "name": "BL2 + u-boot-env",
+          "start": 0,
+          "kib": 2048,
+          "color": "var(--c-boot)",
+          "label": "",
+          "desc": "BL2 Preloader (1 MiB) + legacy u-boot-env (1 MiB) at 0x00000000–0x00200000.",
+          "desc_vi": "BL2 Preloader (1 MiB) + u-boot-env cũ (1 MiB) tại 0x00000000–0x00200000."
+        },
+        {
+          "id": "factory",
+          "mtd": "mtd2",
+          "members": ["mtd2"],
+          "name": "Factory (RF + MAC)",
+          "start": 2097152,
+          "kib": 2048,
+          "color": "var(--c-art)",
+          "label": "",
+          "desc": "Factory calibration EEPROM & MAC addresses (2 MiB @ 0x00200000). Never erase.",
+          "desc_vi": "EEPROM hiệu chuẩn sóng Wi-Fi & địa chỉ MAC (2 MiB tại 0x00200000). Tuyệt đối không xóa."
+        },
+        {
+          "id": "fip",
+          "mtd": "mtd3",
+          "members": ["mtd3"],
+          "name": "FIP (BL31 + U-Boot)",
+          "start": 4194304,
+          "kib": 2048,
+          "color": "var(--c-uboot)",
+          "highlight": true,
+          "label": "",
+          "desc": "ATF BL31 + ImmortalWrt U-Boot 2025.10 (2 MiB @ 0x00400000; payload 916.4 KiB).",
+          "desc_vi": "ATF BL31 + U-Boot ImmortalWrt 2025.10 (2 MiB tại 0x00400000; dung lượng thực 916,4 KiB)."
+        },
+        {
+          "id": "ubi",
+          "mtd": "mtd4",
+          "members": ["mtd4"],
+          "name": "ubi (Native UBI — 234 MiB)",
+          "name_vi": "ubi (Native UBI — 234 MiB)",
+          "start": 6291456,
+          "kib": 239616,
+          "color": "var(--c-slot2)",
+          "label": "ubi · 234 MiB (91.4%)",
+          "label_vi": "ubi · 234 MiB (91,4%)",
+          "desc": "Full 234.00 MiB Native UBI partition (fit kernel+rootfs, rootfs_data overlay, ubootenv, optional recovery).",
+          "desc_vi": "Toàn bộ 234,00 MiB vùng Native UBI (chứa fit kernel+rootfs, overlay rootfs_data, ubootenv và recovery tùy chọn)."
+        },
+        {
+          "id": "unalloc",
+          "mtd": "—",
+          "members": ["—"],
+          "name": "Reserved / BBT (16 MiB)",
+          "name_vi": "Dự phòng / BBT (16 MiB)",
+          "start": 251658240,
+          "kib": 16384,
+          "color": "var(--c-unalloc)",
+          "hatch": true,
+          "label": "6.3%",
+          "label_vi": "6,3%",
+          "desc": "16.00 MiB tail reserve (0x0f000000–0x10000000) for NAND bad-block management.",
+          "desc_vi": "16,00 MiB dự phòng cuối flash (0x0f000000–0x10000000) cho quản lý bad-block NAND."
+        }
+      ]
+    },
+    "stock": {
+      "label": "Stock Viettel ROM (Dual Flat + NMBM)",
+      "summary": "Factory Viettel firmware layout (mtd0 = full 256 MiB raw spi0.0): dual 32 MiB flat firmware slots plus 142 MiB rootfs_data and NMBM.",
+      "summary_vi": "Layout ROM gốc Viettel (mtd0 = toàn bộ 256 MiB raw spi0.0): hai slot firmware phẳng 32 MiB, 142 MiB rootfs_data và lớp NMBM.",
+      "segments": [
+        {
+          "id": "s_bl2_env",
+          "mtd": "mtd1–mtd2",
+          "members": ["mtd0", "mtd1"],
+          "name": "BL2 + u-boot-env",
+          "start": 0,
+          "kib": 2048,
+          "color": "var(--c-boot)",
+          "label": "",
+          "desc": "Stock BL2 (mtd1, 1 MiB) + u-boot-env (mtd2, 1 MiB). Same offsets as ImmortalWrt.",
+          "desc_vi": "BL2 gốc (mtd1, 1 MiB) + u-boot-env (mtd2, 1 MiB). Cùng địa chỉ vật lý với ImmortalWrt."
+        },
+        {
+          "id": "s_factory",
+          "mtd": "mtd3",
+          "members": ["mtd2"],
+          "name": "Factory",
+          "start": 2097152,
+          "kib": 2048,
+          "color": "var(--c-art)",
+          "label": "",
+          "desc": "Stock mtd3 Factory (2 MiB @ 0x00200000). Back up via SSH before making changes!",
+          "desc_vi": "Phân vùng mtd3 Factory gốc (2 MiB tại 0x00200000). Hãy sao lưu qua SSH trước khi thay đổi!"
+        },
+        {
+          "id": "s_fip",
+          "mtd": "mtd4",
+          "members": ["mtd3"],
+          "name": "FIP (Stock U-Boot)",
+          "start": 4194304,
+          "kib": 2048,
+          "color": "var(--c-uboot)",
+          "highlight": true,
+          "label": "",
+          "desc": "Stock mtd4 FIP (U-Boot 2022.07-rc3 with built-in Web Failsafe). Write ImmortalWrt FIP here when migrating.",
+          "desc_vi": "Phân vùng mtd4 FIP gốc (U-Boot 2022.07-rc3 tích hợp Web Failsafe). Ghi file FIP ImmortalWrt vào đây khi chuyển đổi."
+        },
+        {
+          "id": "s_fw1",
+          "mtd": "mtd5",
+          "members": ["mtd4"],
+          "name": "firmware (32 MiB)",
+          "start": 6291456,
+          "kib": 32768,
+          "color": "var(--c-slot1)",
+          "label": "fw1 · 12.5%",
+          "label_vi": "fw1 · 12,5%",
+          "desc": "Primary stock firmware slot (32 MiB flat partition, 0x00600000–0x02600000). Also used by stock-U-Boot OpenWrt 24.10 builds.",
+          "desc_vi": "Slot firmware gốc chính (32 MiB dạng phẳng, 0x00600000–0x02600000). Bản OpenWrt 24.10 chạy trên U-Boot gốc cũng dùng vùng này."
+        },
+        {
+          "id": "s_fw2",
+          "mtd": "mtd6",
+          "members": ["mtd4"],
+          "name": "firmware2 (32 MiB)",
+          "start": 39845888,
+          "kib": 32768,
+          "color": "var(--c-plugin)",
+          "label": "fw2 · 12.5%",
+          "label_vi": "fw2 · 12,5%",
+          "desc": "Secondary stock firmware slot (32 MiB, 0x02600000–0x04600000).",
+          "desc_vi": "Slot firmware gốc dự phòng (32 MiB, 0x02600000–0x04600000)."
+        },
+        {
+          "id": "s_rootfs_data",
+          "mtd": "mtd7",
+          "members": ["mtd4"],
+          "name": "rootfs_data (142 MiB)",
+          "start": 73400320,
+          "kib": 145408,
+          "color": "var(--c-vendor)",
+          "label": "rootfs_data · 142 MiB (55.5%)",
+          "label_vi": "rootfs_data · 142 MiB (55,5%)",
+          "desc": "Stock writable data partition (142 MiB / 0x08e00000, 0x04600000–0x0d400000).",
+          "desc_vi": "Phân vùng dữ liệu ghi của ROM gốc (142 MiB / 0x08e00000, 0x04600000–0x0d400000)."
+        },
+        {
+          "id": "s_nmbm",
+          "mtd": "—",
+          "members": ["—"],
+          "name": "Vendor / NMBM Tail (44 MiB)",
+          "name_vi": "Dữ liệu hãng / NMBM (44 MiB)",
+          "start": 222298112,
+          "kib": 45056,
+          "color": "var(--c-unalloc)",
+          "hatch": true,
+          "label": "17.2%",
+          "label_vi": "17,2%",
+          "desc": "Remaining stock vendor partitions and MediaTek NMBM bad-block mapping table at the tail of flash.",
+          "desc_vi": "Các phân vùng phụ còn lại của nhà mạng và bảng ánh xạ bad-block NMBM của MediaTek ở cuối chip flash."
+        }
+      ]
+    },
+    "keenetic": {
+      "label": "KeeneticOS Port (Dual-Image KN-3811)",
+      "summary": "DIY KeeneticOS 5.01 layout (linhsayshii/keeneticos-nr3053): true A/B dual 32 MiB firmware slots with U-State/D-State and 162+ MiB UBI storage.",
+      "summary_vi": "Layout tự build KeeneticOS 5.01 (linhsayshii/keeneticos-nr3053): hỗ trợ Dual-Image thật gồm 2 slot firmware 32 MiB, U-State/D-State và vùng lưu trữ UBI lớn.",
+      "segments": [
+        {
+          "id": "k_bl2_env",
+          "mtd": "BL2+env",
+          "members": ["mtd0", "mtd1"],
+          "name": "BL2 + u-boot-env",
+          "start": 0,
+          "kib": 2048,
+          "color": "var(--c-boot)",
+          "label": "",
+          "desc": "DS35Q2GBS-compatible BL2 (1 MiB) + u-boot-env (1 MiB).",
+          "desc_vi": "BL2 hỗ trợ DS35Q2GBS (1 MiB) + u-boot-env (1 MiB)."
+        },
+        {
+          "id": "k_factory",
+          "mtd": "Factory",
+          "members": ["mtd2"],
+          "name": "Factory / U-Config",
+          "start": 2097152,
+          "kib": 2048,
+          "color": "var(--c-art)",
+          "label": "",
+          "desc": "Factory RF-EEPROM (0x200000) + Keenetic U-Config at 0x280000.",
+          "desc_vi": "RF-EEPROM gốc (0x200000) + Keenetic U-Config tại 0x280000."
+        },
+        {
+          "id": "k_fip",
+          "mtd": "FIP",
+          "members": ["mtd3"],
+          "name": "FIP (Dual-Image U-Boot)",
+          "start": 4194304,
+          "kib": 2048,
+          "color": "var(--c-uboot)",
+          "highlight": true,
+          "label": "",
+          "desc": "KeeneticOS dual-image U-Boot (fip-nr3053.bin) managing boot attempts and automatic fallback.",
+          "desc_vi": "U-Boot dual-image cho KeeneticOS (fip-nr3053.bin) quản lý thử boot và tự quay về slot cũ khi lỗi."
+        },
+        {
+          "id": "k_fw1",
+          "mtd": "Firmware_1",
+          "members": ["mtd4"],
+          "name": "Firmware_1 (32 MiB)",
+          "start": 6291456,
+          "kib": 32768,
+          "color": "var(--c-slot1)",
+          "label": "FW1",
+          "desc": "Primary KeeneticOS image slot (32 MiB, 0x00600000–0x02600000).",
+          "desc_vi": "Slot ảnh KeeneticOS thứ nhất (32 MiB, 0x00600000–0x02600000)."
+        },
+        {
+          "id": "k_st_a",
+          "mtd": "Storage_A",
+          "members": ["mtd4"],
+          "name": "Config_1 + Storage_A (82 MiB)",
+          "start": 39845888,
+          "kib": 83968,
+          "color": "var(--c-slot2)",
+          "label": "Storage_A · 32.0%",
+          "label_vi": "Storage_A · 32,0%",
+          "desc": "Config_1 (0x02600000) + UBI Storage_A (0x02700000–0x07800000).",
+          "desc_vi": "Config_1 (0x02600000) + vùng UBI Storage_A (0x02700000–0x07800000)."
+        },
+        {
+          "id": "k_state",
+          "mtd": "U/D-State",
+          "members": ["mtd4"],
+          "name": "U-State + D-State (5 MiB)",
+          "start": 125829120,
+          "kib": 5120,
+          "color": "var(--c-cfg)",
+          "label": "",
+          "desc": "Dual-image boot state (U-State @ 0x07800000) + U-Config backup (D-State @ 0x07a80000).",
+          "desc_vi": "Trạng thái dual-image (U-State @ 0x07800000) + bản dự phòng U-Config (D-State @ 0x07a80000)."
+        },
+        {
+          "id": "k_fw2",
+          "mtd": "Firmware_2",
+          "members": ["mtd4"],
+          "name": "Firmware_2 (32 MiB)",
+          "start": 131072000,
+          "kib": 32768,
+          "color": "var(--c-plugin)",
+          "label": "FW2",
+          "desc": "Secondary KeeneticOS image slot (32 MiB, 0x07d00000–0x09d00000).",
+          "desc_vi": "Slot ảnh KeeneticOS thứ hai (32 MiB, 0x07d00000–0x09d00000)."
+        },
+        {
+          "id": "k_st_b",
+          "mtd": "Storage_B",
+          "members": ["mtd4"],
+          "name": "Config_2 + Storage_B (83 MiB)",
+          "start": 164626432,
+          "kib": 84992,
+          "color": "var(--c-vendor)",
+          "label": "Storage_B · 32.4%",
+          "label_vi": "Storage_B · 32,4%",
+          "desc": "Config_2 (0x09e00000) + UBI Storage_B up to 0x0f000000.",
+          "desc_vi": "Config_2 (0x09e00000) + vùng UBI Storage_B kéo dài tới 0x0f000000."
+        },
+        {
+          "id": "k_nmbm",
+          "mtd": "NMBM",
+          "members": ["—"],
+          "name": "NMBM Table (16 MiB)",
+          "name_vi": "Bảng NMBM (16 MiB)",
+          "start": 251658240,
+          "kib": 16384,
+          "color": "var(--c-unalloc)",
+          "hatch": true,
+          "label": "6.3%",
+          "label_vi": "6,3%",
+          "desc": "16.00 MiB MediaTek NMBM bad-block mapping table (0x0f000000–0x10000000). Do not touch.",
+          "desc_vi": "16,00 MiB bảng quản lý bad-block NMBM của MediaTek (0x0f000000–0x10000000). Không đụng vào vùng này."
+        }
+      ]
+    }
+  }
+}

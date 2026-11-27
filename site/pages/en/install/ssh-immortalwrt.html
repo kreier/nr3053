@@ -1,0 +1,118 @@
+<h1>2. Unlock SSH &amp; Flash ImmortalWrt 25.12</h1>
+<p class="lead">
+  This software-only method works without opening the enclosure, gives you full SSH root access to back up your
+  critical <code>Factory</code> partition, and installs <strong>ImmortalWrt 25.12</strong> with the full <strong>234 MiB Native UBI</strong> layout.
+</p>
+
+<h2 id="download-files">Step 1: Download Required Firmware Files</h2>
+<p>
+  Download the latest NR3053 release from <a href="https://github.com/quytttb/immortalwrt-mt798x-rebase/releases" target="_blank" rel="noopener">quytttb/immortalwrt-mt798x-rebase Releases</a> and verify checksums:
+</p>
+<ul>
+  <li><strong>Bootloader (FIP):</strong> <code>immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip</code></li>
+  <li><strong>Firmware:</strong> <code>immortalwrt-mediatek-filogic-viettel_nr3053-squashfs-sysupgrade.itb</code></li>
+  <li><strong>Checksums:</strong> <code>sha256sums</code></li>
+</ul>
+<div class="code-block"><pre><code>sha256sum -c sha256sums --ignore-missing</code></pre></div>
+
+<h2 id="unlock-ssh">Step 2: Factory Reset &amp; Unlock SSH</h2>
+<ol>
+  <li>Connect your PC via Ethernet to a <strong>LAN</strong> port on the NR3053 (router IP: <code>192.168.1.1</code>).</li>
+  <li>Perform a <strong>factory reset</strong>: press and hold the <code>Reset</code> button for <strong>more than 10 seconds</strong> until the LED turns off and comes back on. After reset, the web admin password is the <strong>Serial Number (S/N)</strong> printed on the bottom label of the router.</li>
+  <li>Clone and run <a href="https://github.com/quytttb/nr3053-tools" target="_blank" rel="noopener"><code>quytttb/nr3053-tools</code></a>:</li>
+</ol>
+
+<h3 id="unlock-linux">Linux / macOS</h3>
+<div class="code-block"><pre><code>git clone https://github.com/quytttb/nr3053-tools.git
+cd nr3053-tools
+pip3 install -r requirements.txt
+python3 unlock_nr3053.py --password YOUR_SERIAL_NUMBER</code></pre></div>
+
+<h3 id="unlock-windows">Windows (PowerShell)</h3>
+<div class="code-block"><pre><code>git clone https://github.com/quytttb/nr3053-tools.git
+cd nr3053-tools
+py -m pip install -r requirements.txt
+py unlock_nr3053.py --password YOUR_SERIAL_NUMBER</code></pre></div>
+
+<div class="callout">
+  <div class="callout-title">Fallback: Manual <code>config.bin</code> Export</div>
+  If the script reports that <code>config.cgi</code> only returns JSON, log in to the stock web UI, download <code>config.bin</code> manually from <strong>Backup / Restore</strong>, and pass it with <code>--config-input</code> (<code>--password</code> is still required so the script can upload the patched config):
+  <div class="code-block"><pre><code>python3 unlock_nr3053.py --password YOUR_SERIAL_NUMBER --config-input /path/to/config.bin</code></pre></div>
+</div>
+
+<p>Wait for the router to reboot, then log in over SSH (password after unlock is <code>admin</code>):</p>
+<div class="code-block"><pre><code>ssh root@192.168.1.1
+# Password: admin</code></pre></div>
+
+<h2 id="backup-mtd">Step 3: Inspect MTD Table &amp; Back Up <code>Factory</code></h2>
+<div class="callout danger">
+  <div class="callout-title">Back Up Before Writing Flash</div>
+  Always verify <code>/proc/mtd</code> and save a copy of <code>BL2</code>, <code>u-boot-env</code>, <code>Factory</code>, and <code>FIP</code> to your PC before flashing anything. Never erase <code>Factory</code> (<code>mtd3</code> on stock ROM).
+</div>
+
+<p>Inside the router SSH shell, verify the stock partition layout:</p>
+<div class="code-block"><pre><code>cat /proc/mtd
+# Expected stock output:
+# mtd0: 10000000 00020000 "spi0.0"      &lt;- Full 256 MiB raw NAND
+# mtd1: 00100000 00020000 "BL2"
+# mtd2: 00100000 00020000 "u-boot-env"
+# mtd3: 00200000 00020000 "Factory"     &lt;- NEVER OVERWRITE
+# mtd4: 00200000 00020000 "FIP"         &lt;- Flash ImmortalWrt FIP here
+# mtd5: 02000000 00020000 "firmware"
+# mtd6: 02000000 00020000 "firmware2"
+# mtd7: 08e00000 00020000 "rootfs_data"
+
+# Dump critical boot &amp; calibration partitions to /tmp
+dd if=/dev/mtd1 of=/tmp/stock_BL2.bin
+dd if=/dev/mtd2 of=/tmp/stock_uboot_env.bin
+dd if=/dev/mtd3 of=/tmp/stock_Factory.bin
+dd if=/dev/mtd4 of=/tmp/stock_FIP.bin
+sha256sum /tmp/stock_*.bin</code></pre></div>
+
+<p>On your <strong>PC</strong>, copy those backups off the router (add <code>-O</code> if OpenSSH reports a legacy SCP protocol error):</p>
+<div class="code-block"><pre><code>mkdir -p nr3053-backup
+scp -O root@192.168.1.1:/tmp/stock_*.bin ./nr3053-backup/</code></pre></div>
+
+<h2 id="flash-fip">Step 4: Write ImmortalWrt U-Boot FIP</h2>
+<p>From your <strong>PC</strong>, copy the verified FIP file to the router's <code>/tmp/fip.bin</code>:</p>
+<div class="code-block"><pre><code># Run on your PC (use `scp -O` if legacy SCP is required)
+scp immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip root@192.168.1.1:/tmp/fip.bin</code></pre></div>
+
+<p>Back in the <strong>router SSH session</strong>, confirm <code>FIP</code> exists (size <code>0x00200000</code> = 2 MiB) and write it:</p>
+<div class="code-block"><pre><code>cat /proc/mtd | grep FIP
+mtd write /tmp/fip.bin FIP</code></pre></div>
+<p>Expected output:</p>
+<div class="code-block"><pre><code>Unlocking FIP ...
+Writing from /tmp/fip.bin to FIP ...     [w]</code></pre></div>
+
+<details>
+  <summary>Fallback: If <code>/proc/mtd</code> does not list a named <code>FIP</code> partition</summary>
+  <p style="font-size:0.86rem;color:var(--muted);">
+    FIP lives at physical NAND offset <code>0x400000</code> (4 MiB). With 128 KiB (<code>131072 B</code>) erase blocks, <code>seek = 0x400000 / 0x20000 = 32</code>:
+  </p>
+  <div class="code-block"><pre><code>dd if=/tmp/fip.bin of=/dev/mtd0 bs=131072 seek=32 conv=sync</code></pre></div>
+</details>
+
+<p>Flush buffers and reboot into the new ImmortalWrt U-Boot:</p>
+<div class="code-block"><pre><code>sync &amp;&amp; reboot</code></pre></div>
+
+<h2 id="flash-sysupgrade">Step 5: Install ImmortalWrt via Web Failsafe</h2>
+<p>
+  Because the stock NAND layout above <code>0x600000</code> is flat (not Native UBI), ImmortalWrt U-Boot will automatically start in <strong>Web Failsafe</strong> mode.
+</p>
+<div class="callout warn">
+  <div class="callout-title">Important: Use Static IP <code>192.168.1.254</code></div>
+  ImmortalWrt U-Boot defaults to <code>serverip = 192.168.1.254</code> (different from <code>192.168.1.2</code> used by stock U-Boot). Set your PC's Ethernet IP to <code>192.168.1.254/24</code>.
+</div>
+<ol>
+  <li>Set your PC static IP to <strong><code>192.168.1.254</code></strong> / mask <code>255.255.255.0</code> (Linux: <code>sudo ip addr add 192.168.1.254/24 dev eth0</code>; Windows Admin CMD: <code>netsh interface ip set address name="Ethernet" static 192.168.1.254 255.255.255.0</code>).</li>
+  <li>Open <code>http://192.168.1.1/</code> in your browser — the <strong>FIRMWARE UPDATE</strong> page appears.</li>
+  <li>Select <code>immortalwrt-mediatek-filogic-viettel_nr3053-squashfs-sysupgrade.itb</code> and click <strong>Upload → Update</strong>.</li>
+  <li>Wait ~3 minutes while U-Boot formats the 234 MiB Native UBI partition, writes the FIT image, and reboots into ImmortalWrt.</li>
+  <li>Switch your PC back to DHCP and visit <code>http://192.168.1.1/</code> (LuCI) or <code>ssh root@192.168.1.1</code>.</li>
+</ol>
+
+<h2 id="future-upgrades">Future Upgrades</h2>
+<p>
+  Once ImmortalWrt is installed, routine upgrades do <strong>not</strong> require flashing FIP or BL2 again — simply upload newer <code>*-squashfs-sysupgrade.itb</code> builds in LuCI under <strong>System → Backup / Flash Firmware</strong> (or via <code>sysupgrade</code> over SSH).
+</p>

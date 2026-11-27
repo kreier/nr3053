@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="{{LANG}}">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{TITLE}} — Viettel SDMC NR3053</title>
+  <meta name="description" content="{{DESCRIPTION}}" />
+  <link rel="icon" href="{{ROOT}}assets/logo.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="{{ROOT}}assets/style.css" />
+</head>
+<body>
+  <input type="checkbox" id="nav-open" class="nav-open" aria-label="{{MENU_LABEL}}" />
+  <header class="top">
+    <a class="brand" href="{{HOME_HREF}}">
+      <img src="{{ROOT}}assets/logo.svg" alt="" width="26" height="26" />
+      <span>Viettel SDMC NR3053</span>
+      <small>{{BRAND_SUB}}</small>
+    </a>
+    <a class="top-link lang" href="{{ALT_LANG_HREF}}" hreflang="{{ALT_LANG_CODE}}" lang="{{ALT_LANG_CODE}}">{{ALT_LANG_LABEL}}</a>
+    <a class="top-link" href="https://github.com/kreier/nr3053" target="_blank" rel="noopener">GitHub</a>
+    <button id="theme-toggle" type="button" class="top-btn" aria-label="Toggle theme">☾</button>
+    <label class="menu-btn" for="nav-open">{{MENU_LABEL}}</label>
+  </header>
+
+  <div class="shell">
+    <nav class="side" aria-label="{{NAV_ARIA}}">
+{{SIDEBAR_HTML}}
+      <div class="side-footer">
+        <strong>Viettel SDMC NR3053 (AX3000)</strong><br />
+        <a href="https://github.com/kreier/nr3053" target="_blank" rel="noopener">kreier/nr3053</a><br />
+        <a href="https://github.com/quytttb/immortalwrt-mt798x-rebase" target="_blank" rel="noopener">quytttb/immortalwrt-mt798x-rebase</a><br />
+        <a href="https://github.com/quytttb/nr3053-tools" target="_blank" rel="noopener">quytttb/nr3053-tools</a><br />
+        <a href="https://github.com/linhsayshii/keeneticos-nr3053" target="_blank" rel="noopener">linhsayshii/keeneticos-nr3053</a><br />
+        <span>Build: <code>{{GIT_SHA}}</code></span>
+      </div>
+    </nav>
+
+    <main class="doc">
+{{CRUMBS_HTML}}
+{{BODY_HTML}}
+{{PAGER_HTML}}
+    </main>
+
+    <aside class="toc-right" aria-label="{{TOC_TITLE}}">
+      <div class="toc-heading">{{TOC_TITLE}}</div>
+{{RIGHT_TOC_HTML}}
+    </aside>
+  </div>
+
+{{EXTRA_SCRIPTS}}
+  <script src="{{ROOT}}assets/app.js"></script>
+</body>
+</html>

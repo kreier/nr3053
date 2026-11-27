@@ -1,0 +1,112 @@
+<h1>Thông số phần cứng &amp; Mổ xẻ chi tiết</h1>
+<p class="lead">
+  Do <strong>Shenzhen SDMC Technology Co., Ltd.</strong> sản xuất OEM cho hệ sinh thái Home WiFi 6 của Viettel,
+  <strong>SDMC NR3053</strong> sở hữu cấu hình rất “hào phóng” trong tầm giá: SoC <strong>MediaTek MT7981BA (Filogic 820)</strong>,
+  <strong>512 MiB RAM DDR3L</strong>, <strong>256 MiB SPI NAND Flash</strong>, chip Wi-Fi tích hợp FEM <strong>MT7976CN</strong>
+  và đặc biệt là cụm chân <strong>UART 3.3 V lộ sẵn</strong> có in nhãn rõ ràng.
+</p>
+
+<h2 id="bang-cau-hinh">Bảng tổng hợp cấu hình phần cứng</h2>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Thành phần</th>
+        <th>Thông số chi tiết</th>
+        <th>Ghi chú kỹ thuật</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Model / Bo mạch</strong></td><td>Viettel SDMC NR3053 (AX3000)</td><td>OEM bởi SDMC · Mã mạch PCB <code>WIFI6-MT-02.C</code></td></tr>
+      <tr><td><strong>CPU / SoC</strong></td><td>MediaTek MT7981BA (Filogic 820)</td><td>2 nhân ARM Cortex-A53 64-bit @ 1.3 GHz, hỗ trợ phần cứng HNAT/WED</td></tr>
+      <tr><td><strong>RAM</strong></td><td>512 MiB DDR3L</td><td>Linkage <code>4GF4MLF-GJS</code> (4 Gbit) — chịu tải 40–60+ thiết bị và nhiều gói mở rộng</td></tr>
+      <tr><td><strong>Flash lưu trữ</strong></td><td>256 MiB SPI NAND</td><td>Dosilicon <code>DS35Q2GBS</code> (2 Gbit, WSON-8, erase block 128 KiB, page 2 KiB)</td></tr>
+      <tr><td><strong>Chip RF Wi-Fi 6</strong></td><td>MediaTek MT7976CN</td><td>AX3000 hai băng tần: 2.4 GHz 574 Mbps (2×2 40 MHz) + 5 GHz 2402 Mbps (160 MHz); tích hợp FEM</td></tr>
+      <tr><td><strong>Switch Ethernet</strong></td><td>MediaTek MT7531AE</td><td>4 cổng Gigabit RJ45 (1 WAN + 3 LAN), kết nối CPU 2.5G SGMII (<code>2500base-x</code>)</td></tr>
+      <tr><td><strong>Hệ thống ăng-ten</strong></td><td>4 ăng-ten ngoài 5 dBi</td><td>5 nhánh RF trên PCB: 3× 5 GHz (<code>CONG3–5</code>, 2T3R/3T3R) + 2× 2.4 GHz (<code>CONG1–2</code>)</td></tr>
+      <tr><td><strong>Nút bấm &amp; Đèn LED</strong></td><td>Reset, WPS/Mesh · LED 2 màu</td><td>Reset = GPIO 1, WPS = GPIO 0; LED Xanh = GPIO 4, Đỏ = GPIO 6 (active-low)</td></tr>
+      <tr><td><strong>Cổng Debug UART</strong></td><td>4 chân 3.3 V TTL UART</td><td>In lụa rõ <code>GND</code>, <code>TX</code>, <code>RX</code>, <code>VCC</code> · Tốc độ 115200 8N1</td></tr>
+      <tr><td><strong>Nguồn vào</strong></td><td>DC 12 V / 1.0 A – 1.5 A</td><td>Jack tròn DC tiêu chuẩn</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2 id="kham-pha-ben-trong">Bên trong vỏ máy: Tản nhiệt, ăng-ten &amp; chân UART</h2>
+<p>
+  Tháo nắp vỏ nhựa trắng sẽ lộ toàn bộ bo mạch chủ màu xanh dương <code>WIFI6-MT-02.C</code> với khối tản nhiệt nhôm sơn tĩnh điện đen lớn (gắn bằng 4 chốt nhựa) phủ lên cụm SoC, RAM, switch và chip Wi-Fi.
+</p>
+
+<figure class="photo">
+  <img src="{{ROOT}}images/nr3053-pcb-heatsink.jpg" alt="Mặt trước bo mạch PCB Viettel SDMC NR3053 với khối tản nhiệt nhôm đen, 5 đầu nối ăng-ten, cụm 4 cổng LAN vàng và cụm chân UART" loading="lazy" />
+  <figcaption>
+    <strong>Mặt trước PCB khi còn tản nhiệt:</strong> Cụm 4 cổng mạng Gigabit RJ45 màu vàng phía trên, 2 nút bấm (<code>S1</code>/<code>S2</code>), <strong>cụm 4 chân UART lộ sẵn</strong> ở góc trên bên trái (<code>GND</code>, <code>TX</code>, <code>RX</code>, <code>VCC</code>), và <strong>5 điểm nối ăng-ten đồng trục</strong> bên trái/dưới (cổng 1–3 cho 5 GHz, cổng 4–5 cho 2.4 GHz). Ảnh: <a href="https://aiot.io.vn/serial/disassemble/kham-pha-phan-cung-viettel-nr3053/" target="_blank" rel="noopener">AIoT.IO.VN</a>.
+  </figcaption>
+</figure>
+
+<ul>
+  <li><strong>Thiết kế 5 nhánh RF:</strong> Ba nhánh RF (<code>CONG3</code>, <code>CONG4</code>, <code>CONG5</code>) phục vụ băng tần 5 GHz (cấu hình 2T3R/3T3R tăng độ nhạy thu từ thiết bị đầu cuối), cùng hai nhánh (<code>CONG1</code>, <code>CONG2</code>) cho băng tần 2.4 GHz (2×2 MIMO).</li>
+  <li><strong>Cụm chân UART thân thiện:</strong> 4 chân góc trên bên trái in nhãn rõ ràng (<code>GND</code>, <code>TX</code>, <code>RX</code>, <code>VCC</code>), giúp kết nối console và cứu brick bằng <code>mtk_uartboot</code> dễ dàng mà không phải dò mạch ẩn.</li>
+  <li><strong>Khu vực mạch chờ bên phải:</strong> Có các chân linh kiện để trống cho phép dân mod phần cứng tự hàn thêm cổng USB (sử dụng chung với bản ImmortalWrt hỗ trợ USB mod).</li>
+</ul>
+
+<h2 id="linh-kien-ban-dan">Cận cảnh các chip bán dẫn chính</h2>
+<p>
+  Sau khi tháo khối tản nhiệt nhôm và mở nắp lồng chống nhiễu kim loại, toàn bộ các chip xử lý cốt lõi đều lộ diện rõ ràng:
+</p>
+
+<figure class="photo">
+  <img src="{{ROOT}}images/nr3053-pcb-chips.jpg" alt="Cận cảnh linh kiện chính trên bo mạch Viettel SDMC NR3053: MediaTek MT7981BA, RAM 512MB DDR3L Linkage, Switch MT7531AE và chip Wi-Fi 6 MT7976CN" loading="lazy" />
+  <figcaption>
+    <strong>Các chip chính trên bo mạch <code>WIFI6-MT-02.C</code>:</strong> Từ trái sang phải ở hình phóng to — <strong>MediaTek MT7976CN</strong> (RF Wi-Fi 6 tích hợp sẵn FEM), <strong>MediaTek MT7531AE</strong> (chip switch Gigabit ngay dưới cụm cổng RJ45) và <strong>MediaTek MT7981BA</strong> (SoC Filogic 820) nằm cạnh thanh RAM <strong>Linkage 4GF4MLF-GJS</strong> (512 MiB DDR3L) bên trong khung lồng EMI. Ảnh: <a href="https://aiot.io.vn/serial/disassemble/kham-pha-phan-cung-viettel-nr3053/" target="_blank" rel="noopener">AIoT.IO.VN</a>.
+  </figcaption>
+</figure>
+
+<ul>
+  <li><strong>MediaTek MT7981BA (Filogic 820):</strong> Được hỗ trợ rất tốt trên nhân Linux mới và nhánh <code>mediatek/filogic</code> của OpenWrt/ImmortalWrt, đi kèm driver mã nguồn mở <code>mt76</code> và tăng tốc phần cứng HNAT/WED.</li>
+  <li><strong>RAM Linkage 4GF4MLF-GJS (512 MiB DDR3L):</strong> Dung lượng gấp đôi đa số router nhà mạng 256 MiB, thoải mái chạy AdGuard Home, SQM/cake, WireGuard hay Tailscale mà không lo tràn bộ nhớ.</li>
+  <li><strong>Switch MediaTek MT7531AE:</strong> Kết nối nội bộ với SoC ở tốc độ 2.5 Gbps (<code>2500base-x</code>), quản lý trọn vẹn 4 cổng RJ45 Gigabit (<code>wan</code>, <code>lan1</code>, <code>lan2</code>, <code>lan3</code>).</li>
+  <li><strong>Chip RF MediaTek MT7976CN:</strong> Hỗ trợ đầy đủ 1024-QAM và băng thông kênh 160 MHz trên 5 GHz, tích hợp sẵn FEM bên trong nên mạch rất gọn.</li>
+</ul>
+
+<h2 id="mat-sau-va-flash">Mặt sau bo mạch &amp; Chip SPI NAND 256 MiB</h2>
+<p>
+  Lật mặt dưới của bo mạch chủ thấy thiết kế gọn sạch với các vùng đồng tiếp địa lớn hỗ trợ tản nhiệt thụ động cùng chip nhớ lưu trữ duy nhất:
+</p>
+
+<figure class="photo">
+  <img src="{{ROOT}}images/nr3053-pcb-back-nand.jpg" alt="Mặt sau bo mạch Viettel SDMC NR3053 với chip SPI NAND Flash Dosilicon DS35Q2GBS 256 MiB" loading="lazy" />
+  <figcaption>
+    <strong>Mặt dưới bo mạch PCB:</strong> Khoanh đỏ là chip nhớ <strong>Dosilicon DS35Q2GBS</strong> dung lượng 2 Gbit (256 MiB) chuẩn SPI NAND đóng gói WSON-8. Ảnh: <a href="https://aiot.io.vn/serial/disassemble/kham-pha-phan-cung-viettel-nr3053/" target="_blank" rel="noopener">AIoT.IO.VN</a>.
+  </figcaption>
+</figure>
+
+<div class="callout warn">
+  <div class="callout-title">Lưu ý tương thích chip NAND Dosilicon <code>DS35Q2GBS</code></div>
+  NR3053 dùng chip SPI NAND <strong>Dosilicon DS35Q2GBS</strong> 256 MiB. Tuyệt đối không nạp BL2 của dòng router khác hoặc bản cũ chưa có driver DS35Q2GBS — máy sẽ không boot được từ NAND và phải cứu lại qua UART (<code>mtk_uartboot</code>).
+</div>
+
+<h2 id="so-do-gpio">Bảng chân GPIO, LED &amp; Cổng mạng (từ DTS)</h2>
+<p>
+  Trích xuất trực tiếp từ <code>target/linux/mediatek/dts-ext/mt7981b-viettel-nr3053.dts</code>:
+</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Chức năng</th>
+        <th>Chân / Cổng</th>
+        <th>Mức logic / Chi tiết</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Nút WPS / Mesh</strong></td><td class="mono">GPIO 0</td><td>Active-low (<code>KEY_WPS_BUTTON</code>); giữ ~5 giây khi cắm nguồn để vào Web Failsafe gốc</td></tr>
+      <tr><td><strong>Nút Reset</strong></td><td class="mono">GPIO 1</td><td>Active-low (<code>KEY_RESTART</code>); giữ &gt;10 giây để factory reset</td></tr>
+      <tr><td><strong>LED Trạng thái (Xanh)</strong></td><td class="mono">GPIO 4</td><td>Active-low (<code>green:status</code> / báo nâng cấp)</td></tr>
+      <tr><td><strong>LED Trạng thái (Đỏ)</strong></td><td class="mono">GPIO 6</td><td>Active-low (<code>red:status</code> / boot, failsafe, hoạt động)</td></tr>
+      <tr><td><strong>Ngắt Switch MT7531</strong></td><td class="mono">GPIO 38</td><td>IRQ level-high</td></tr>
+      <tr><td><strong>Reset Switch MT7531</strong></td><td class="mono">GPIO 39</td><td>Active-high (phải giữ mức cao khi hoạt động)</td></tr>
+      <tr><td><strong>Cổng Ethernet (MT7531)</strong></td><td class="mono">port@0 .. port@3</td><td><code>port@0</code> = WAN (MAC tại <code>Factory+0x0a</code>), <code>port@1..3</code> = LAN1–LAN3, <code>port@6</code> = CPU <code>2500base-x</code></td></tr>
+      <tr><td><strong>Bộ điều khiển USB (<code>xhci</code>)</strong></td><td class="mono">Tắt mặc định</td><td>Không có cổng USB sẵn; chỉ kích hoạt cho máy NR3053 đã mod phần cứng USB</td></tr>
+    </tbody>
+  </table>
+</div>

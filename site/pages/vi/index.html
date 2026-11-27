@@ -1,0 +1,124 @@
+<h1>Viettel SDMC NR3053 — Hướng dẫn OpenWrt &amp; ImmortalWrt</h1>
+<p class="lead">
+  Tài liệu song ngữ đầy đủ giúp mở khóa, nạp firmware và tối ưu router Wi-Fi 6 (AX3000) <strong>Viettel SDMC NR3053</strong>.
+  Sử dụng vi xử lý <strong>MediaTek Filogic 820 (MT7981BA)</strong>, <strong>512 MiB RAM DDR3L</strong> và
+  <strong>256 MiB SPI NAND</strong>, NR3053 hỗ trợ tốt <strong>ImmortalWrt 25.12</strong>, <strong>OpenWrt 24.10</strong>
+  cũng như bản port <strong>KeeneticOS</strong> từ cộng đồng.
+</p>
+
+<div class="spec-grid">
+  <div class="spec-card">
+    <div class="spec-label">SoC &amp; Switch</div>
+    <div class="spec-value">MT7981BA + MT7531AE</div>
+    <div class="spec-detail">2 nhân Cortex-A53 @ 1.3 GHz · 1 WAN + 3 LAN Gigabit</div>
+  </div>
+  <div class="spec-card">
+    <div class="spec-label">RAM &amp; SPI NAND</div>
+    <div class="spec-value">512 MiB / 256 MiB</div>
+    <div class="spec-detail">DDR3L Linkage · Dosilicon DS35Q2GBS (2.048 × 128 KiB)</div>
+  </div>
+  <div class="spec-card">
+    <div class="spec-label">Wi-Fi 6 (AX3000)</div>
+    <div class="spec-value">MediaTek MT7976CN</div>
+    <div class="spec-detail">2.4 GHz 574 Mbps + 5 GHz 2402 Mbps @ 160 MHz</div>
+  </div>
+  <div class="spec-card">
+    <div class="spec-label">Debug &amp; Cứu Brick</div>
+    <div class="spec-value">UART 4 chân lộ sẵn</div>
+    <div class="spec-detail">3.3 V TTL @ 115200 · Tích hợp Web Failsafe</div>
+  </div>
+</div>
+
+<figure class="photo hero-photo">
+  <img src="{{ROOT}}images/nr3053-exterior.jpg" alt="Ngoại hình router Wi-Fi 6 Viettel SDMC NR3053 với 4 ăng-ten ngoài" loading="lazy" />
+  <figcaption>
+    <strong>Viettel SDMC NR3053 (AX3000):</strong> Thiết kế vỏ trắng tối giản với 4 ăng-ten ngoài đa hướng 5 dBi, khe tản nhiệt đối lưu mặt trước và 4 cổng Gigabit RJ45 phía sau. Ảnh từ <a href="https://aiot.io.vn/serial/disassemble/kham-pha-phan-cung-viettel-nr3053/" target="_blank" rel="noopener">AIoT.IO.VN</a>.
+  </figcaption>
+</figure>
+
+<h2 id="tong-quan-tai-lieu">Tổng quan tài liệu</h2>
+<p>Tài liệu được chia thành các mục rõ ràng từ phần cứng, bố cục phân vùng tương tác, 3 phương pháp nạp firmware cho tới tối ưu Wi-Fi và SQM:</p>
+
+<div class="nav-cards">
+  <a class="nav-card" href="hardware/">
+    <h3>Phần cứng &amp; Mổ xẻ</h3>
+    <p>Ảnh tháo vỏ, bo mạch PCB (tản nhiệt, cụm chân UART, cận cảnh MT7981BA/MT7976CN/MT7531AE, chip NAND Dosilicon) và sơ đồ GPIO.</p>
+  </a>
+  <a class="nav-card" href="hardware/partitions.html">
+    <h3>Bố cục phân vùng 256 MiB</h3>
+    <p>Sơ đồ tương tác SPI NAND 256 MiB so sánh ImmortalWrt Native UBI (234 MiB), ROM gốc Viettel và KeeneticOS Dual-Image.</p>
+  </a>
+  <a class="nav-card" href="bootloader/">
+    <h3>Quy trình Boot &amp; U-Boot</h3>
+    <p>Chuỗi khởi động MediaTek MT7981B (BootROM → BL2 → FIP → FIT/UBI), Web Failsafe gốc và bảng lệnh bootmenu ImmortalWrt.</p>
+  </a>
+  <a class="nav-card" href="firmware/">
+    <h3>Lựa chọn Firmware</h3>
+    <p>So sánh ImmortalWrt 25.12 (v2.5.0), OpenWrt 24.10 tương thích U-Boot gốc và bản tự build KeeneticOS 5.01.</p>
+  </a>
+  <a class="nav-card" href="install/web-failsafe.html">
+    <h3>1. Flash qua Web Failsafe gốc</h3>
+    <p>Giữ nút MESH khi cắm nguồn để nạp trực tiếp OpenWrt 24.10 hoặc FIP ImmortalWrt mà không cần mở SSH hay tháo vỏ.</p>
+  </a>
+  <a class="nav-card" href="install/ssh-immortalwrt.html">
+    <h3>2. Mở SSH &amp; cài ImmortalWrt</h3>
+    <p>Mở SSH bằng <code>nr3053-tools</code>, sao lưu phân vùng <code>Factory</code>, ghi FIP ImmortalWrt và nạp <code>sysupgrade.itb</code>.</p>
+  </a>
+  <a class="nav-card" href="install/uart-recovery.html">
+    <h3>3. Cứu Brick UART &amp; TFTP</h3>
+    <p>Cứu brick hoặc chạy thử RAM (<code>initramfs-recovery.itb</code>) qua UART 3.3 V TTL bằng <code>mtk_uartboot</code> và TFTP.</p>
+  </a>
+  <a class="nav-card" href="use/tuning.html">
+    <h3>Tối ưu Wi-Fi Roaming &amp; SQM</h3>
+    <p>Cấu hình Wi-Fi roaming mượt 802.11r/k/v và SQM/cake chống bufferbloat (đạt điểm A Waveform) trên ImmortalWrt 25.12.</p>
+  </a>
+</div>
+
+<h2 id="chon-cach-cai-dat">Chọn phương pháp cài đặt</h2>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Phương pháp</th>
+        <th>Độ khó</th>
+        <th>Cần tháo vỏ?</th>
+        <th>Phù hợp khi</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><a href="install/web-failsafe.html"><strong>1. Web Failsafe gốc (Không cần SSH)</strong></a></td>
+        <td><span class="badge rec">Dễ nhất</span></td>
+        <td>Không</td>
+        <td>Máy có sẵn U-Boot gốc 2022.07-rc3 hỗ trợ Web Failsafe: nạp thẳng OpenWrt 24.10 hoặc nạp FIP qua <code>/uboot.html</code>.</td>
+      </tr>
+      <tr>
+        <td><a href="install/ssh-immortalwrt.html"><strong>2. Mở SSH → ImmortalWrt 25.12</strong></a></td>
+        <td><span class="badge warn">Trung bình</span></td>
+        <td>Không</td>
+        <td>Muốn sao lưu đầy đủ MTD/Factory trước khi flash, hoặc lô máy cũ không có Web Failsafe. Cho dung lượng 234 MiB Native UBI.</td>
+      </tr>
+      <tr>
+        <td><a href="install/uart-recovery.html"><strong>3. UART + TFTP (<code>mtk_uartboot</code>)</strong></a></td>
+        <td><span class="badge danger">Nâng cao</span></td>
+        <td>Có (TTL 3.3 V)</td>
+        <td>Cứu brick, boot thử <code>initramfs-recovery.itb</code> trên RAM không ghi NAND, hoặc dọn sạch bảng NMBM cũ.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="callout warn">
+  <div class="callout-title">Luôn bảo vệ phân vùng <code>Factory</code> (<code>0x200000</code>)</div>
+  Phân vùng <code>Factory</code> (2 MiB) chứa dữ liệu hiệu chuẩn sóng Wi-Fi RF EEPROM và địa chỉ MAC duy nhất của máy. Tuyệt đối không xóa và hãy sao lưu ngay khi có quyền SSH hoặc UART.
+</div>
+
+<h2 id="nguon-cong-dong">Kho mã nguồn &amp; Tài liệu tham khảo</h2>
+<ul>
+  <li><strong>ImmortalWrt 25.12 (nhánh MT798x, v2.5.0):</strong> <a href="https://github.com/quytttb/immortalwrt-mt798x-rebase" target="_blank" rel="noopener">quytttb/immortalwrt-mt798x-rebase</a> (<a href="https://github.com/quytttb/immortalwrt-mt798x-rebase/releases" target="_blank" rel="noopener">Releases</a>)</li>
+  <li><strong>Công cụ mở SSH &amp; Patch Factory:</strong> <a href="https://github.com/quytttb/nr3053-tools" target="_blank" rel="noopener">quytttb/nr3053-tools</a></li>
+  <li><strong>Mã nguồn Bootloader U-Boot / BL2:</strong> <a href="https://github.com/quytttb/bl-mt798x-dhcpd" target="_blank" rel="noopener">quytttb/bl-mt798x-dhcpd</a></li>
+  <li><strong>Mổ xẻ phần cứng &amp; Hướng dẫn OpenWrt 24.10:</strong> <a href="https://aiot.io.vn/serial/disassemble/kham-pha-phan-cung-viettel-nr3053/" target="_blank" rel="noopener">AIoT.IO.VN Mổ xẻ</a> · <a href="https://aiot.io.vn/firmware/viettel/viettel-sdmc-nr3053-posts/h%C6%B0%C6%A1ng-dan-flash-openwrt-khong-can-mo-ssh-nr3053/" target="_blank" rel="noopener">Flash không cần SSH</a> · <a href="https://aiot.io.vn/firmware/viettel/viettel-sdmc-nr3053-posts/huong-dan-mo-ssh-flash-firmware-rn3053/" target="_blank" rel="noopener">Mở SSH &amp; Flash</a></li>
+  <li><strong>Bản port tự build KeeneticOS 5.01:</strong> <a href="https://github.com/linhsayshii/keeneticos-nr3053" target="_blank" rel="noopener">linhsayshii/keeneticos-nr3053</a> (<a href="https://github.com/linhsayshii/keeneticos-nr3053/releases/tag/v32" target="_blank" rel="noopener">Bootloader v32</a>)</li>
+  <li><strong>Gist tối ưu Wi-Fi Roaming &amp; SQM:</strong> <a href="https://gist.github.com/hashcott/68e337ac52f3410e6d19a177fb5bc1bf" target="_blank" rel="noopener">hashcott/NR3053.md</a></li>
+</ul>

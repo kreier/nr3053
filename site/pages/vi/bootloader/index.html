@@ -1,0 +1,103 @@
+<h1>Quy trình khởi động &amp; Bootloader U-Boot</h1>
+<p class="lead">
+  Hiểu rõ chuỗi khởi động của <strong>MediaTek MT7981B (Filogic 820)</strong> giúp bạn biết vì sao nạp <code>FIP</code>
+  an toàn hơn nhiều so với nạp <code>BL2</code>, và vì sao cụm chân UART lộ sẵn giúp NR3053 gần như không thể brick vĩnh viễn.
+</p>
+
+<h2 id="chuoi-khoi-dong">Chuỗi khởi động 4 bước của MT7981B</h2>
+<div class="boot-flow">
+  <div class="stage-card rom">
+    <div class="stage-num">Bước 0 <strong>BootROM (BROM)</strong></div>
+    <div class="stage-body">
+      <div class="stage-badges">
+        <span class="stage-badge rom">Cố định trong silicon</span>
+        <span class="stage-badge">Bắt tay UART</span>
+      </div>
+      <p>Ghi cứng bên trong SoC MT7981BA. Khi cấp nguồn, BROM lắng nghe nhanh trên UART0 để bắt tay <code>mtk_uartboot</code>; nếu không có tín hiệu sẽ nạp BL2 từ SPI NAND tại <code>0x000000</code>. Vì BROM không thể bị xóa, cứu máy qua UART luôn hoạt động.</p>
+    </div>
+  </div>
+  <div class="stage-card">
+    <div class="stage-num">Bước 1 <strong>BL2 Preloader</strong></div>
+    <div class="stage-body">
+      <div class="stage-badges">
+        <span class="stage-badge">Offset 0x000000 · 1 MiB</span>
+        <span class="stage-badge">Rủi ro cao</span>
+      </div>
+      <p>SPL của ARM Trusted Firmware khởi tạo 512 MiB RAM DDR3L và bộ điều khiển SPI NAND Dosilicon <code>DS35Q2GBS</code>, sau đó nạp FIP tại <code>0x400000</code>. Thông thường giữ nguyên BL2 gốc khi cài OpenWrt hoặc ImmortalWrt.</p>
+    </div>
+  </div>
+  <div class="stage-card uboot">
+    <div class="stage-num">Bước 2 <strong>FIP (BL31 + U-Boot)</strong></div>
+    <div class="stage-body">
+      <div class="stage-badges">
+        <span class="stage-badge mirror">Offset 0x400000 · 2 MiB</span>
+        <span class="stage-badge">Web Failsafe + TFTP</span>
+      </div>
+      <p>Gói ảnh chứa ATF BL31 và Das U-Boot. Có thể là <strong>U-Boot gốc 2022.07-rc3</strong> (tích hợp Web Failsafe, chạy OpenWrt 24.10 layout gốc) hoặc <strong>U-Boot ImmortalWrt 2025.10</strong> (hỗ trợ Native UBI, Web Failsafe, DHCP, TFTP và bootmenu).</p>
+    </div>
+  </div>
+  <div class="stage-card os">
+    <div class="stage-num">Bước 3 <strong>Linux FIT / UBI</strong></div>
+    <div class="stage-body">
+      <div class="stage-badges">
+        <span class="stage-badge dual">Offset 0x600000+</span>
+        <span class="stage-badge">Kernel 6.12 / 6.6</span>
+      </div>
+      <p>U-Boot kiểm tra và khởi chạy nhân Linux + Device Tree + SquashFS từ phân vùng phẳng <code>firmware</code> (ROM gốc / OpenWrt 24.10) hoặc volume UBI <code>fit</code> (ImmortalWrt 25.12), rồi gắn phân vùng ghi dữ liệu overlay.</p>
+    </div>
+  </div>
+</div>
+
+<h2 id="so-sanh-uboot">So sánh U-Boot gốc &amp; U-Boot ImmortalWrt</h2>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Tính năng</th>
+        <th>U-Boot gốc Viettel (<code>2022.07-rc3</code>)</th>
+        <th>U-Boot ImmortalWrt (<code>2025.10</code> — <code>bl-mt798x-dhcpd</code>)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Địa chỉ Web Failsafe</strong></td><td><code>http://192.168.1.1/</code> (firmware), <code>/uboot.html</code> (FIP)</td><td><code>http://192.168.1.1/</code> (tự vào khi vùng UBI chưa có OS)</td></tr>
+      <tr><td><strong>Cách kích hoạt</strong></td><td>Giữ nút <strong>MESH</strong> khi cắm nguồn (~5 giây, đèn đỏ → xanh lá đứng yên)</td><td>Giữ Reset / tự vào khi UBI trống, hoặc gõ <code>bootmenu</code> qua UART</td></tr>
+      <tr><td><strong>IP tĩnh trên máy tính</strong></td><td><code>192.168.1.2 / 24</code></td><td><code>192.168.1.254 / 24</code> (<code>serverip=192.168.1.254</code>)</td></tr>
+      <tr><td><strong>Bố cục Flash</strong></td><td>Phân vùng phẳng <code>firmware</code> (32 MiB) + NMBM</td><td>Native UBI (~234 MiB gộp chung, không NMBM)</td></tr>
+      <tr><td><strong>Firmware tương thích</strong></td><td>ROM gốc Viettel, OpenWrt 24.10 tương thích U-Boot gốc (<code>aiot.io.vn</code>)</td><td>ImmortalWrt 25.12 (<code>quytttb/immortalwrt-mt798x-rebase</code>)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="callout">
+  <div class="callout-title">Lưu ý với một số lô NR3053 cũ</div>
+  Một số phiên bản NR3053 cũ hơn có thể chưa tích hợp chế độ Web Failsafe trong U-Boot gốc. Nếu giữ nút <strong>MESH</strong> khi cắm điện không vào được <code>http://192.168.1.1/</code>, hãy chuyển sang <a href="../install/ssh-immortalwrt.html">Cách 2: Mở SSH &amp; cài ImmortalWrt</a>.
+</div>
+
+<h2 id="bang-bootmenu">Bảng tham chiếu Bootmenu U-Boot ImmortalWrt</h2>
+<p>
+  Khi kết nối UART 3.3 V (<code>115200 8N1</code>), nhấn phím bất kỳ tại dòng <code>Hit any key to stop autoboot</code> rồi gõ <code>bootmenu</code>:
+</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Phím</th>
+        <th>Mục menu</th>
+        <th>Mục đích sử dụng</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="mono"><strong>1</strong></td><td>Run default boot command</td><td>Boot mặc định (lần đầu hiện <code>Initialize environment</code> để đọc MAC từ Factory).</td></tr>
+      <tr><td class="mono"><strong>2</strong></td><td>Boot system via TFTP</td><td><strong>Tùy chọn A:</strong> Chạy thử <code>initramfs-recovery.itb</code> trên RAM, không ghi NAND.</td></tr>
+      <tr><td class="mono"><strong>3</strong></td><td>Boot production system from NAND</td><td>Khởi động ImmortalWrt đã cài trong volume UBI <code>fit</code>.</td></tr>
+      <tr><td class="mono"><strong>4</strong></td><td>Boot recovery system from NAND</td><td>Khởi động volume <code>recovery</code> trên NAND (nếu đã cài).</td></tr>
+      <tr><td class="mono"><strong>5</strong></td><td>Load production system via TFTP then write to NAND</td><td><strong>Tùy chọn B:</strong> Nạp vĩnh viễn <code>squashfs-sysupgrade.itb</code> vào volume UBI <code>fit</code>.</td></tr>
+      <tr><td class="mono"><strong>6</strong></td><td>Load recovery system via TFTP then write to NAND</td><td>Tùy chọn: lưu <code>initramfs-recovery.itb</code> vào NAND để cứu hộ sau này.</td></tr>
+      <tr><td class="mono"><strong>7</strong></td><td>Load BL31+U-Boot FIP via TFTP then write to NAND</td><td>Nâng cấp FIP (chữ đỏ cảnh báo — luôn kiểm tra SHA-256 trước).</td></tr>
+      <tr><td class="mono"><strong>8</strong></td><td>Load BL2 preloader via TFTP then write to NAND</td><td>Nâng cấp BL2 preloader (<strong>rủi ro cao</strong> — chỉ làm khi thật sự cần).</td></tr>
+      <tr><td class="mono"><strong>9</strong></td><td>Reboot</td><td>Khởi động lại thiết bị.</td></tr>
+      <tr><td class="mono"><strong>a</strong></td><td>Reset all settings to factory defaults</td><td>Đặt lại các biến môi trường U-Boot về mặc định.</td></tr>
+      <tr><td class="mono"><strong>0</strong></td><td>Exit</td><td>Thoát menu về dấu nhắc dòng lệnh U-Boot.</td></tr>
+    </tbody>
+  </table>
+</div>

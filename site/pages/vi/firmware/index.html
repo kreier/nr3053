@@ -1,0 +1,98 @@
+<h1>Các lựa chọn Firmware cho Viettel SDMC NR3053</h1>
+<p class="lead">
+  Hiện có 3 dòng firmware cộng đồng hoạt động ổn định cho NR3053. Hãy chọn phiên bản phù hợp với nhu cầu sử dụng,
+  kho gói cài đặt và việc bạn muốn giữ hay thay bootloader gốc.
+</p>
+
+<h2 id="so-sanh-firmware">Bảng so sánh nhanh</h2>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Firmware</th>
+        <th>Nền tảng / Kernel</th>
+        <th>Bootloader</th>
+        <th>Bộ nhớ khả dụng</th>
+        <th>Điểm nổi bật &amp; Lưu ý</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>ImmortalWrt 25.12 (v2.5.0)</strong><br /><span class="badge rec">Khuyến nghị</span></td>
+        <td>ImmortalWrt 25.12<br />Kernel 6.12 · <code>apk</code></td>
+        <td>FIP tùy chỉnh (<code>bl-mt798x-dhcpd</code>)</td>
+        <td><strong>~234 MiB</strong> Native UBI</td>
+        <td>Không gian cài gói cực lớn, hỗ trợ MediaTek <code>mt_wifi</code> / HNAT, phát hành đều đặn kèm <code>sha256sums</code>, hỗ trợ máy đã mod USB và tối ưu 802.11r/k/v + SQM.</td>
+      </tr>
+      <tr>
+        <td><strong>OpenWrt 24.10</strong><br /><span class="badge">Dễ cài nhất</span></td>
+        <td>OpenWrt 24.10<br />Kho <code>opkg</code> chính thức</td>
+        <td><strong>Giữ U-Boot gốc Viettel</strong></td>
+        <td>Slot gốc 32 MiB</td>
+        <td>Không cần mở SSH, không cần đổi U-Boot — flash trực tiếp qua Web Failsafe gốc. Dễ về lại ROM gốc và cài gói thoải mái từ repo chính thức OpenWrt 24.10.</td>
+      </tr>
+      <tr>
+        <td><strong>KeeneticOS 5.01</strong><br /><span class="badge warn">Tự build</span></td>
+        <td>Keenetic KN-3811<br />Kernel 4.9 (SDK)</td>
+        <td>BL2 + FIP Dual-Image (<code>v32</code>)</td>
+        <td>2 slot 32 MiB + 162 MiB UBI</td>
+        <td>Giao diện Keenetic đẹp, mượt, có <code>hw_nat</code> + <code>warp</code> (~941 Mbps dây / ~960 Mbps 5 GHz), Dual-Image tự hồi slot cũ. Phải tự build từ SDK + ảnh gốc KN-3811.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<h2 id="immortalwrt">1. ImmortalWrt 25.12 (<code>quytttb/immortalwrt-mt798x-rebase</code>)</h2>
+<p>
+  Do <strong>quytttb</strong> duy trì trên nhánh <code>mediatek/filogic</code> (Linux 6.12) với đầy đủ file build sẵn kèm mã kiểm tra <code>sha256sums</code> tại
+  <a href="https://github.com/quytttb/immortalwrt-mt798x-rebase/releases" target="_blank" rel="noopener">GitHub Releases</a> (bản mới nhất: <code>v2.5.0</code>, 30/10/2026).
+</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Tên file (v2.5.0)</th>
+        <th class="num">Kích thước</th>
+        <th>Công dụng</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="mono">immortalwrt-mediatek-filogic-viettel_nr3053-squashfs-sysupgrade.itb</td><td class="num">28,463,376 B</td><td>Firmware chính — nạp qua Web Failsafe, LuCI hoặc TFTP bootmenu <code>[5]</code>.</td></tr>
+      <tr><td class="mono">immortalwrt-mediatek-filogic-viettel_nr3053-initramfs-recovery.itb</td><td class="num">24,772,608 B</td><td>Ảnh Recovery chạy trên RAM — test qua TFTP <code>[2]</code> hoặc ghi vùng recovery <code>[6]</code>.</td></tr>
+      <tr><td class="mono">immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip</td><td class="num">938,352 B</td><td>ATF BL31 + U-Boot ImmortalWrt — ghi vào <code>FIP</code> (<code>0x400000</code>) khi cài lần đầu.</td></tr>
+      <tr><td class="mono">immortalwrt-mediatek-filogic-viettel_nr3053-preloader.bin</td><td class="num">172,544 B</td><td>BL2 preloader — <strong>rủi ro cao</strong>; không nạp trừ khi thật sự cần thiết.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="callout">
+  <div class="callout-title">Lưu ý về tính năng USB Mod</div>
+  Bản phát hành <code>v2.5.0</code> bật hỗ trợ USB dành riêng cho các máy NR3053 đã <strong>mod phần cứng cổng USB</strong>. Máy NR3053 nguyên bản vẫn chạy bình thường (bộ điều khiển USB không dùng đến), hoặc bạn có thể tham khảo bản <a href="https://github.com/quytttb/immortalwrt-mt798x-rebase/releases/tag/v2.4.5" target="_blank" rel="noopener"><code>v2.4.5</code></a>. Luôn kiểm tra tính toàn vẹn file bằng <code>sha256sum -c sha256sums</code>.
+</div>
+
+<h2 id="openwrt-2410">2. OpenWrt 24.10 cho U-Boot gốc (<code>aiot.io.vn</code>)</h2>
+<p>
+  Do <strong>Ng Nghia Phan (AIoT.IO.VN)</strong> biên dịch tương thích hoàn toàn với U-Boot gốc của Viettel giúp người dùng cài nhanh mà không phải mở SSH hay thay đổi bootloader (OpenWrt chính thức hiện chưa có nhánh 25.12 cho NR3053).
+</p>
+<ul>
+  <li><strong>Thư mục tải về:</strong> <a href="https://www.mediafire.com/folder/q9qnyei9ewnpu/nr3053" target="_blank" rel="noopener">MediaFire — NR3053 OpenWrt 24.10</a> (từ <a href="https://aiot.io.vn/firmware/viettel/viettel-sdmc-nr3053-posts/h%C6%B0%C6%A1ng-dan-flash-openwrt-khong-can-mo-ssh-nr3053/" target="_blank" rel="noopener">bài viết AIoT.IO.VN</a>)</li>
+  <li><strong>File khuyến nghị (lần đầu flash):</strong> <code>openwrt-mediatek-filogic-viettel_nr3053-stock-squashfs-factory_fix.bin</code></li>
+  <li><strong>File dự phòng (nếu gặp bootloop):</strong> <code>openwrt-aiotiovn-mediatek-filogic-viettel_nr3053-stock-squashfs-factory.bin</code></li>
+  <li><strong>Kho gói:</strong> Tương thích kho gói chính thức OpenWrt 24.10, dùng <code>opkg install</code> trực tiếp.</li>
+</ul>
+
+<h2 id="keeneticos">3. Bản Port tự build KeeneticOS 5.01 (<code>linhsayshii/keeneticos-nr3053</code>)</h2>
+<p>
+  Dự án port <strong>KeeneticOS 5.01.C.7.0-4 (mã KN-3811)</strong> lên NR3053 của <strong>linhsayshii</strong>.
+  Do phần mềm <code>ndm</code>, giao diện web và driver của Keenetic là mã nguồn đóng, kho GitHub <strong>không</strong> phân phối file firmware sẵn — mà cung cấp trọn bộ bản vá kernel 4.9 (gồm driver SPI-NAND Dosilicon <code>DS35Q2GBS</code> dùng lệnh đọc <code>0x6B</code>), script vá nhị phân cho 4 cổng MT7531/GPIO NR3053 và bootloader mã nguồn mở (<a href="https://github.com/linhsayshii/keeneticos-nr3053/releases/tag/v32" target="_blank" rel="noopener">Release <code>v32</code></a>).
+</p>
+<div class="code-block"><pre><code># Tự build KeeneticOS trên Ubuntu 24.04 (filesystem ext4, user không phải root)
+git clone --depth 1 -b 5.01.C.7.0-4 https://github.com/keenetic/keenetic-sdk.git
+git clone https://github.com/linhsayshii/keeneticos-nr3053.git
+cd keeneticos-nr3053
+./scripts/apply-to-sdk.sh ../keenetic-sdk /duong/dan/KN-3811_stable_5.01.C.7.0-4.bin
+cd ../keenetic-sdk &amp;&amp; make -j$(nproc)
+python3 ../keeneticos-nr3053/tools/verify_fw.py bin/mt7981/*_Firmware-KN-3811-5.01.C.7.0-4.bin</code></pre></div>
+<p>
+  Lưu ý: Tính năng auto-update đã bị tắt (firmware KN-3811 chính hãng <strong>không</strong> chạy trên NR3053); mọi nâng cấp đều nạp qua U-Boot Web Failsafe.
+</p>

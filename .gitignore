@@ -53,3 +53,11 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Generated GitHub Pages site output
+site/dist/
+

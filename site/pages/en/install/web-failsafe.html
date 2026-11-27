@@ -1,0 +1,84 @@
+<h1>1. Flash via Stock Web Failsafe (No SSH Required)</h1>
+<p class="lead">
+  The stock Viettel U-Boot (<code>2022.07-rc3</code>) includes a built-in HTTP <strong>Web Failsafe</strong> server.
+  You can flash a stock-compatible <strong>OpenWrt 24.10</strong> image directly—or even install the custom
+  <strong>ImmortalWrt U-Boot FIP</strong>—without unlocking SSH or opening the case.
+</p>
+
+<div class="callout tip">
+  <div class="callout-title">Safest Path for Beginners</div>
+  Flashing a stock-U-Boot-compatible <strong>OpenWrt 24.10</strong> build leaves your original bootloader untouched, minimizes brick risk, and lets you revert to stock firmware easily.
+</div>
+
+<h2 id="prerequisites">Prerequisites</h2>
+<ul>
+  <li>An Ethernet cable connected from your PC to any <strong>LAN</strong> port on the NR3053 (do <strong>not</strong> plug into WAN).</li>
+  <li><strong>For OpenWrt 24.10 (keeps stock U-Boot):</strong> Download from the <a href="https://www.mediafire.com/folder/q9qnyei9ewnpu/nr3053" target="_blank" rel="noopener">AIoT.IO.VN MediaFire folder</a>:
+    <ul>
+      <li>First-time install: <code>openwrt-mediatek-filogic-viettel_nr3053-stock-squashfs-factory_fix.bin</code></li>
+      <li>Fallback if bootloop occurs: <code>openwrt-aiotiovn-mediatek-filogic-viettel_nr3053-stock-squashfs-factory.bin</code></li>
+    </ul>
+  </li>
+  <li><strong>Optional (for ImmortalWrt 25.12):</strong> Download both <code>immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip</code> and <code>immortalwrt-mediatek-filogic-viettel_nr3053-squashfs-sysupgrade.itb</code> from <a href="https://github.com/quytttb/immortalwrt-mt798x-rebase/releases" target="_blank" rel="noopener">GitHub Releases</a>.</li>
+</ul>
+
+<h2 id="enter-failsafe">Step 1: Enter Stock Web Failsafe Mode</h2>
+<ol>
+  <li>Unplug the power cable from the NR3053.</li>
+  <li>Connect your PC via Ethernet to one of the <strong>LAN</strong> ports.</li>
+  <li><strong>Press and hold the <code>MESH</code> (WPS) button</strong> on the back of the router, then plug in the 12 V power adapter.</li>
+  <li>Keep holding <code>MESH</code> for about <strong>5 seconds</strong> until the front LED transitions from <strong>red to solid green</strong>, then release the button.</li>
+</ol>
+
+<h2 id="static-ip">Step 2: Set a Static IP on Your PC</h2>
+<p>Assign your PC Ethernet interface the static IPv4 address <code>192.168.1.2/24</code> (gateway and DNS blank):</p>
+
+<h3 id="static-ip-linux">Linux</h3>
+<div class="code-block"><pre><code># Replace eth0 with your actual Ethernet interface name (check with `ip link`)
+sudo ip addr flush dev eth0
+sudo ip addr add 192.168.1.2/24 dev eth0
+sudo ip link set eth0 up</code></pre></div>
+
+<h3 id="static-ip-windows">Windows</h3>
+<p>Either open <code>Win+R</code> → <code>ncpa.cpl</code> → Ethernet Properties → IPv4 → Static IP <code>192.168.1.2</code>, Subnet Mask <code>255.255.255.0</code> (leave Gateway &amp; DNS blank), or run in an Administrator Command Prompt:</p>
+<div class="code-block"><pre><code>netsh interface ip set address name="Ethernet" static 192.168.1.2 255.255.255.0</code></pre></div>
+
+<h2 id="flash-openwrt">Step 3: Upload &amp; Flash OpenWrt 24.10</h2>
+<ol>
+  <li>Open an incognito/private browser window and go to <code>http://192.168.1.1/</code>. You should see the stock U-Boot <strong>FIRMWARE UPDATE</strong> screen.</li>
+  <li>Click <strong>Choose File</strong>, select <code>openwrt-mediatek-filogic-viettel_nr3053-stock-squashfs-factory_fix.bin</code>, and click <strong>Upload</strong>.</li>
+  <li>Verify the displayed file size and <strong>MD5 checksum</strong>, then click <strong>Update</strong>.</li>
+  <li>Do <strong>not</strong> unplug power while flashing. The router will reboot automatically into OpenWrt.</li>
+  <li>Restore your PC Ethernet adapter back to <strong>Automatic (DHCP)</strong>, then open <code>http://192.168.1.1/</code> to configure OpenWrt LuCI.</li>
+</ol>
+
+<div class="photo-grid">
+  <figure class="photo">
+    <img src="{{ROOT}}images/nr3053-stock-uboot.jpg" alt="Stock Viettel NR3053 U-Boot 2022.07-rc3 Web Failsafe Firmware Update upload page" loading="lazy" />
+    <figcaption><strong>1. Choose File &amp; Upload</strong> on the stock <code>U-Boot 2022.07-rc3</code> Web Failsafe page at <code>http://192.168.1.1/</code>. Photo: <a href="https://aiot.io.vn/firmware/viettel/viettel-sdmc-nr3053-posts/h%C6%B0%C6%A1ng-dan-flash-openwrt-khong-can-mo-ssh-nr3053/" target="_blank" rel="noopener">AIoT.IO.VN</a>.</figcaption>
+  </figure>
+  <figure class="photo">
+    <img src="{{ROOT}}images/nr3053-uboot-checksum.jpg" alt="Stock Viettel NR3053 U-Boot MD5 verification and Update button" loading="lazy" />
+    <figcaption><strong>2. Verify MD5 &amp; click Update:</strong> Wait until the flash completes and the router reboots automatically. Photo: <a href="https://aiot.io.vn/firmware/viettel/viettel-sdmc-nr3053-posts/h%C6%B0%C6%A1ng-dan-flash-openwrt-khong-can-mo-ssh-nr3053/" target="_blank" rel="noopener">AIoT.IO.VN</a>.</figcaption>
+  </figure>
+</div>
+
+<h2 id="flash-custom-uboot">Optional: Flash ImmortalWrt U-Boot FIP via <code>/uboot.html</code></h2>
+<div class="callout danger">
+  <div class="callout-title">Caution When Replacing Bootloader</div>
+  Flashing an incompatible or corrupted <code>.fip</code> file will prevent booting from NAND and require <a href="uart-recovery.html">3.3 V UART recovery</a>. Verify the file with <code>sha256sum -c sha256sums</code> first!
+</div>
+<p>
+  If you want the full 234 MiB Native UBI layout and <strong>ImmortalWrt 25.12</strong> without unlocking SSH, stock Web Failsafe exposes a hidden bootloader upload page:
+</p>
+<ol>
+  <li>While in Stock Web Failsafe, browse to <code>http://192.168.1.1/uboot.html</code>.</li>
+  <li>Upload <code>immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip</code> and click <strong>Update</strong>.</li>
+  <li>After reboot, the new ImmortalWrt U-Boot starts and automatically enters Web Failsafe because no UBI OS exists yet.</li>
+  <li>Change your PC static IP to <strong><code>192.168.1.254/24</code></strong>, open <code>http://192.168.1.1/</code>, upload <code>immortalwrt-mediatek-filogic-viettel_nr3053-squashfs-sysupgrade.itb</code>, and wait ~3 minutes for the router to reboot into ImmortalWrt.</li>
+</ol>
+
+<div class="callout">
+  <div class="callout-title">Web Failsafe Not Responding?</div>
+  Some older NR3053 stock batches do not include Web Failsafe in U-Boot. If <code>http://192.168.1.1/</code> does not load after holding MESH, proceed to <a href="ssh-immortalwrt.html">Method 2: Unlock SSH &amp; Flash ImmortalWrt</a>.
+</div>

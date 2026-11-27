@@ -1,0 +1,84 @@
+<h1>1. Flash qua Web Failsafe gốc (Không cần mở SSH)</h1>
+<p class="lead">
+  U-Boot gốc của Viettel NR3053 (<code>2022.07-rc3</code>) có tích hợp sẵn giao diện <strong>Web Failsafe</strong>.
+  Nhờ đó bạn có thể nạp trực tiếp bản <strong>OpenWrt 24.10</strong> tương thích U-Boot gốc—hoặc nạp file
+  <strong>FIP U-Boot ImmortalWrt</strong>—mà không cần mở SSH hay tháo vỏ router.
+</p>
+
+<div class="callout tip">
+  <div class="callout-title">Cách an toàn nhất cho người mới</div>
+  Nạp bản <strong>OpenWrt 24.10</strong> tương thích U-Boot gốc giúp giữ nguyên bootloader của nhà sản xuất, hạn chế tối đa rủi ro brick và dễ dàng quay về ROM gốc khi cần.
+</div>
+
+<h2 id="chuan-bi">Chuẩn bị</h2>
+<ul>
+  <li>Cáp mạng Ethernet cắm từ máy tính vào một <strong>cổng LAN bất kỳ</strong> trên NR3053 (<strong>không</strong> cắm cổng WAN).</li>
+  <li><strong>Cho OpenWrt 24.10 (giữ U-Boot gốc):</strong> Tải từ <a href="https://www.mediafire.com/folder/q9qnyei9ewnpu/nr3053" target="_blank" rel="noopener">thư mục MediaFire của AIoT.IO.VN</a>:
+    <ul>
+      <li>Lần đầu flash: <code>openwrt-mediatek-filogic-viettel_nr3053-stock-squashfs-factory_fix.bin</code></li>
+      <li>Dự phòng nếu không boot / bootloop: <code>openwrt-aiotiovn-mediatek-filogic-viettel_nr3053-stock-squashfs-factory.bin</code></li>
+    </ul>
+  </li>
+  <li><strong>Tùy chọn (nếu muốn lên ImmortalWrt 25.12):</strong> Tải cả <code>immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip</code> và <code>immortalwrt-mediatek-filogic-viettel_nr3053-squashfs-sysupgrade.itb</code> từ <a href="https://github.com/quytttb/immortalwrt-mt798x-rebase/releases" target="_blank" rel="noopener">GitHub Releases</a>.</li>
+</ul>
+
+<h2 id="vao-web-failsafe">Bước 1: Đưa router vào chế độ Web Failsafe gốc</h2>
+<ol>
+  <li>Rút dây nguồn khỏi NR3053.</li>
+  <li>Cắm dây LAN từ máy tính vào một <strong>cổng LAN</strong> bất kỳ trên router.</li>
+  <li><strong>Nhấn giữ nút <code>MESH</code> (WPS)</strong> ở mặt sau router rồi cắm nguồn điện 12 V vào.</li>
+  <li>Tiếp tục giữ nút <code>MESH</code> khoảng <strong>5 giây</strong> cho tới khi đèn mặt trước chuyển từ <strong>màu đỏ sang màu xanh lá đứng yên</strong> thì nhả tay.</li>
+</ol>
+
+<h2 id="dat-ip-tinh">Bước 2: Đặt IP tĩnh trên máy tính</h2>
+<p>Gán cho card mạng Ethernet địa chỉ IPv4 tĩnh <code>192.168.1.2/24</code> (để trống Gateway và DNS):</p>
+
+<h3 id="ip-tinh-linux">Linux</h3>
+<div class="code-block"><pre><code># Thay eth0 bằng tên cổng mạng thật (kiểm tra bằng lệnh `ip link`)
+sudo ip addr flush dev eth0
+sudo ip addr add 192.168.1.2/24 dev eth0
+sudo ip link set eth0 up</code></pre></div>
+
+<h3 id="ip-tinh-windows">Windows</h3>
+<p>Nhấn <code>Win+R</code> → gõ <code>ncpa.cpl</code> → chuột phải cổng Ethernet → Properties → IPv4 → nhập IP <code>192.168.1.2</code>, Subnet Mask <code>255.255.255.0</code> (Gateway &amp; DNS để trống), hoặc chạy CMD bằng quyền Administrator:</p>
+<div class="code-block"><pre><code>netsh interface ip set address name="Ethernet" static 192.168.1.2 255.255.255.0</code></pre></div>
+
+<h2 id="nap-openwrt">Bước 3: Tải lên &amp; Nạp OpenWrt 24.10</h2>
+<ol>
+  <li>Mở trình duyệt (nên dùng tab ẩn danh để tránh lưu cache) và truy cập <code>http://192.168.1.1/</code> — màn hình <strong>FIRMWARE UPDATE</strong> của U-Boot gốc sẽ hiện ra.</li>
+  <li>Nhấn <strong>Choose File</strong>, chọn file <code>openwrt-mediatek-filogic-viettel_nr3053-stock-squashfs-factory_fix.bin</code> rồi bấm <strong>Upload</strong>.</li>
+  <li>Kiểm tra dung lượng và mã <strong>MD5 checksum</strong> hiển thị, sau đó nhấn <strong>Update</strong>.</li>
+  <li><strong>Tuyệt đối không rút nguồn</strong> trong lúc đang ghi NAND. Router sẽ tự khởi động lại vào OpenWrt khi xong.</li>
+  <li>Chuyển card mạng máy tính về lại chế độ nhận IP tự động (<strong>DHCP</strong>) rồi vào <code>http://192.168.1.1/</code> để cấu hình LuCI.</li>
+</ol>
+
+<div class="photo-grid">
+  <figure class="photo">
+    <img src="{{ROOT}}images/nr3053-stock-uboot.jpg" alt="Giao diện Web Failsafe U-Boot 2022.07-rc3 gốc của Viettel NR3053" loading="lazy" />
+    <figcaption><strong>1. Chọn file &amp; Upload</strong> trên giao diện Web Failsafe của <code>U-Boot 2022.07-rc3</code> tại <code>http://192.168.1.1/</code>. Ảnh: <a href="https://aiot.io.vn/firmware/viettel/viettel-sdmc-nr3053-posts/h%C6%B0%C6%A1ng-dan-flash-openwrt-khong-can-mo-ssh-nr3053/" target="_blank" rel="noopener">AIoT.IO.VN</a>.</figcaption>
+  </figure>
+  <figure class="photo">
+    <img src="{{ROOT}}images/nr3053-uboot-checksum.jpg" alt="Màn hình kiểm tra mã MD5 và nút Update trên U-Boot gốc Viettel NR3053" loading="lazy" />
+    <figcaption><strong>2. Kiểm tra MD5 &amp; bấm Update:</strong> Đợi router tự ghi vào flash và khởi động lại. Ảnh: <a href="https://aiot.io.vn/firmware/viettel/viettel-sdmc-nr3053-posts/h%C6%B0%C6%A1ng-dan-flash-openwrt-khong-can-mo-ssh-nr3053/" target="_blank" rel="noopener">AIoT.IO.VN</a>.</figcaption>
+  </figure>
+</div>
+
+<h2 id="nap-uboot-tuy-chinh">Tùy chọn: Nạp FIP U-Boot ImmortalWrt qua <code>/uboot.html</code></h2>
+<div class="callout danger">
+  <div class="callout-title">Cẩn trọng khi thay đổi Bootloader</div>
+  Nạp file <code>.fip</code> lỗi hoặc sai thiết bị sẽ khiến máy không boot được từ NAND và phải <a href="uart-recovery.html">cứu qua UART 3.3 V</a>. Hãy luôn kiểm tra file bằng <code>sha256sum -c sha256sums</code> trước!
+</div>
+<p>
+  Nếu muốn dùng toàn bộ 234 MiB Native UBI và chạy <strong>ImmortalWrt 25.12</strong> mà không cần mở SSH, Web Failsafe gốc có trang ẩn để nạp bootloader:
+</p>
+<ol>
+  <li>Khi đang ở Web Failsafe gốc, truy cập <code>http://192.168.1.1/uboot.html</code>.</li>
+  <li>Chọn file <code>immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip</code> và nhấn <strong>Update</strong>.</li>
+  <li>Sau khi khởi động lại, U-Boot ImmortalWrt mới chạy và tự động vào Web Failsafe do vùng UBI chưa có hệ điều hành.</li>
+  <li>Đổi IP tĩnh máy tính sang <strong><code>192.168.1.254/24</code></strong>, mở <code>http://192.168.1.1/</code>, tải lên file <code>immortalwrt-mediatek-filogic-viettel_nr3053-squashfs-sysupgrade.itb</code> và đợi ~3 phút để router khởi động vào ImmortalWrt.</li>
+</ol>
+
+<div class="callout">
+  <div class="callout-title">Không vào được Web Failsafe gốc?</div>
+  Một số lô NR3053 cũ hơn có thể không hỗ trợ chế độ Web Failsafe trong U-Boot. Nếu giữ nút MESH mà không mở được <code>http://192.168.1.1/</code>, hãy làm theo <a href="ssh-immortalwrt.html">Cách 2: Mở SSH &amp; cài ImmortalWrt</a>.
+</div>

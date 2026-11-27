@@ -1,0 +1,103 @@
+<h1>Boot Process &amp; U-Boot Bootloaders</h1>
+<p class="lead">
+  Understanding how the MediaTek <strong>MT7981B (Filogic 820)</strong> boots explains why flashing <code>FIP</code>
+  is much safer than flashing <code>BL2</code>, and why an exposed UART header makes the NR3053 practically unbrickable.
+</p>
+
+<h2 id="boot-stages">MT7981B 4-Stage Boot Chain</h2>
+<div class="boot-flow">
+  <div class="stage-card rom">
+    <div class="stage-num">Stage 0 <strong>BootROM (BROM)</strong></div>
+    <div class="stage-body">
+      <div class="stage-badges">
+        <span class="stage-badge rom">Immutable Silicon</span>
+        <span class="stage-badge">UART Handshake</span>
+      </div>
+      <p>Hardwired inside the MT7981BA SoC. On power-up, briefly listens on UART0 for a <code>mtk_uartboot</code> handshake; if none arrives, loads BL2 from SPI NAND at <code>0x000000</code>. Because BootROM cannot be overwritten, UART recovery always works.</p>
+    </div>
+  </div>
+  <div class="stage-card">
+    <div class="stage-num">Stage 1 <strong>BL2 Preloader</strong></div>
+    <div class="stage-body">
+      <div class="stage-badges">
+        <span class="stage-badge">Offset 0x000000 · 1 MiB</span>
+        <span class="stage-badge">High Risk</span>
+      </div>
+      <p>ARM Trusted Firmware SPL that initializes the 512 MiB DDR3L RAM and the Dosilicon <code>DS35Q2GBS</code> SPI NAND controller, then loads FIP from <code>0x400000</code>. Usually left untouched when installing OpenWrt or ImmortalWrt.</p>
+    </div>
+  </div>
+  <div class="stage-card uboot">
+    <div class="stage-num">Stage 2 <strong>FIP (BL31 + U-Boot)</strong></div>
+    <div class="stage-body">
+      <div class="stage-badges">
+        <span class="stage-badge mirror">Offset 0x400000 · 2 MiB</span>
+        <span class="stage-badge">Web Failsafe + TFTP</span>
+      </div>
+      <p>Firmware Image Package containing ATF BL31 runtime services and Das U-Boot. Either the <strong>stock U-Boot 2022.07-rc3</strong> (supports Web Failsafe &amp; stock-layout OpenWrt 24.10) or <strong>ImmortalWrt U-Boot 2025.10</strong> (supports Native UBI, Web Failsafe, DHCP, TFTP, and bootmenu).</p>
+    </div>
+  </div>
+  <div class="stage-card os">
+    <div class="stage-num">Stage 3 <strong>Linux FIT / UBI</strong></div>
+    <div class="stage-body">
+      <div class="stage-badges">
+        <span class="stage-badge dual">Offset 0x600000+</span>
+        <span class="stage-badge">Kernel 6.12 / 6.6</span>
+      </div>
+      <p>U-Boot verifies and boots the kernel + device tree + SquashFS root filesystem from flat <code>firmware</code> (stock / OpenWrt 24.10) or the UBI <code>fit</code> volume (ImmortalWrt 25.12), mounting the writable overlay.</p>
+    </div>
+  </div>
+</div>
+
+<h2 id="uboot-comparison">Stock U-Boot vs. ImmortalWrt U-Boot</h2>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Feature</th>
+        <th>Stock Viettel U-Boot (<code>2022.07-rc3</code>)</th>
+        <th>ImmortalWrt U-Boot (<code>2025.10</code> via <code>bl-mt798x-dhcpd</code>)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Web Failsafe URL</strong></td><td><code>http://192.168.1.1/</code> (firmware), <code>/uboot.html</code> (FIP)</td><td><code>http://192.168.1.1/</code> (auto-enters if UBI has no valid OS)</td></tr>
+      <tr><td><strong>Trigger Button</strong></td><td>Hold <strong>MESH</strong> button at power-on (~5 s, red → solid green LED)</td><td>Hold Reset / automatic when UBI empty, or UART <code>bootmenu</code></td></tr>
+      <tr><td><strong>PC Static IP</strong></td><td><code>192.168.1.2 / 24</code></td><td><code>192.168.1.254 / 24</code> (<code>serverip=192.168.1.254</code>)</td></tr>
+      <tr><td><strong>Flash Layout</strong></td><td>Stock flat <code>firmware</code> (32 MiB) + NMBM</td><td>Native UBI (~234 MiB single container, no NMBM)</td></tr>
+      <tr><td><strong>Compatible Firmwares</strong></td><td>Stock Viettel ROM, stock-layout OpenWrt 24.10 (<code>aiot.io.vn</code>)</td><td>ImmortalWrt 25.12 (<code>quytttb/immortalwrt-mt798x-rebase</code>)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="callout">
+  <div class="callout-title">Note on Older NR3053 Units</div>
+  Some earlier NR3053 hardware/stock batches shipped without the HTTP Web Failsafe server enabled in stock U-Boot. If holding <strong>MESH</strong> at power-on does not open <code>http://192.168.1.1/</code>, use the <a href="../install/ssh-immortalwrt.html">SSH Unlock method</a> instead.
+</div>
+
+<h2 id="immortalwrt-bootmenu">ImmortalWrt U-Boot Serial Bootmenu Reference</h2>
+<p>
+  When connected over 3.3 V UART (<code>115200 8N1</code>), press any key at <code>Hit any key to stop autoboot</code> and run <code>bootmenu</code>:
+</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Key</th>
+        <th>Menu Entry</th>
+        <th>Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="mono"><strong>1</strong></td><td>Run default boot command</td><td>Normal boot (on very first boot, shows <code>Initialize environment</code> to read Factory MACs).</td></tr>
+      <tr><td class="mono"><strong>2</strong></td><td>Boot system via TFTP</td><td><strong>Option A:</strong> Load <code>initramfs-recovery.itb</code> into RAM without touching NAND.</td></tr>
+      <tr><td class="mono"><strong>3</strong></td><td>Boot production system from NAND</td><td>Boot installed ImmortalWrt from UBI volume <code>fit</code>.</td></tr>
+      <tr><td class="mono"><strong>4</strong></td><td>Boot recovery system from NAND</td><td>Boot optional UBI <code>recovery</code> volume if previously flashed.</td></tr>
+      <tr><td class="mono"><strong>5</strong></td><td>Load production system via TFTP then write to NAND</td><td><strong>Option B:</strong> Flash <code>squashfs-sysupgrade.itb</code> permanently into UBI <code>fit</code>.</td></tr>
+      <tr><td class="mono"><strong>6</strong></td><td>Load recovery system via TFTP then write to NAND</td><td>Optional: store <code>initramfs-recovery.itb</code> in NAND for button/menu recovery.</td></tr>
+      <tr><td class="mono"><strong>7</strong></td><td>Load BL31+U-Boot FIP via TFTP then write to NAND</td><td>Upgrade FIP (red warning — verify SHA-256 first).</td></tr>
+      <tr><td class="mono"><strong>8</strong></td><td>Load BL2 preloader via TFTP then write to NAND</td><td>Upgrade BL2 preloader (<strong>high risk</strong> — only if required).</td></tr>
+      <tr><td class="mono"><strong>9</strong></td><td>Reboot</td><td>Restart router.</td></tr>
+      <tr><td class="mono"><strong>a</strong></td><td>Reset all settings to factory defaults</td><td>Reset U-Boot environment variables.</td></tr>
+      <tr><td class="mono"><strong>0</strong></td><td>Exit</td><td>Drop to interactive U-Boot shell prompt.</td></tr>
+    </tbody>
+  </table>
+</div>

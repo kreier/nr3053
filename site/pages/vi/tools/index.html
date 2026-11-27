@@ -1,0 +1,78 @@
+<h1>Công cụ &amp; Gỡ lỗi thường gặp</h1>
+<p class="lead">
+  Tài liệu sử dụng bộ công cụ <a href="https://github.com/quytttb/nr3053-tools" target="_blank" rel="noopener"><code>nr3053-tools</code></a>
+  và hướng dẫn xử lý các lỗi phổ biến nhất khi nạp firmware qua Web Failsafe, SCP, TFTP hoặc UART trên Viettel SDMC NR3053.
+</p>
+
+<h2 id="nr3053-tools">Bộ công cụ <code>quytttb/nr3053-tools</code></h2>
+<p>
+  Các tiện ích Python chạy trên máy tính dành riêng cho router Viettel SDMC NR3053:
+</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Công cụ</th>
+        <th>Chức năng</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="mono">unlock_nr3053.py</td><td>Tải bản sao lưu cấu hình của ROM gốc, vá bật SSH/Telnet rồi tải ngược lên router (mật khẩu SSH trở thành <code>admin</code>).</td></tr>
+      <tr><td class="mono">factory/patch_factory_throughwall.py</td><td>Công cụ offline vá bản dump <code>Factory</code> chuẩn 2 MiB của NR3053 với giá trị hiệu chuẩn xuyên tường đã xác minh, in SHA-256 trước/sau và không tự ghi lên router.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="code-block"><pre><code># Cài đặt nr3053-tools
+git clone https://github.com/quytttb/nr3053-tools.git
+cd nr3053-tools
+python3 -m pip install -r requirements.txt
+
+# 1. Mở khóa SSH/Telnet (sau factory reset, mật khẩu là S/N dưới đáy máy)
+python3 unlock_nr3053.py --password SERIAL_NUMBER_CUA_BAN
+
+# 2. Tùy chọn: Patch Factory xuyên tường offline (file dump đúng 2 MiB)
+python3 factory/patch_factory_throughwall.py stock_Factory.bin
+python3 factory/patch_factory_throughwall.py --check stock_Factory.throughwall_mtd_Factory_0x0-0x200000.bin</code></pre></div>
+
+<h2 id="go-loi">Các lỗi thường gặp &amp; Cách khắc phục</h2>
+
+<h3 id="loi-failsafe">Không mở được trang Web Failsafe</h3>
+<ul>
+  <li>Đảm bảo cáp mạng cắm vào cổng <strong>LAN</strong> (không phải WAN) và máy tính đã đặt đúng IP tĩnh: <code>192.168.1.2/24</code> (với U-Boot gốc) hoặc <code>192.168.1.254/24</code> (với U-Boot ImmortalWrt).</li>
+  <li>Tắt Wi-Fi và VPN trên máy tính trong khi flash; mở trình duyệt ở tab ẩn danh để tránh cache cũ.</li>
+  <li>Kiểm tra bạn đã giữ đúng nút <strong>MESH</strong> (không phải Reset) trước khi cắm điện và nhả khi đèn chuyển sang xanh lá đứng yên (~5 giây).</li>
+  <li>Một số lô NR3053 đời đầu không có Web Failsafe trong U-Boot gốc — hãy chuyển sang <a href="../install/ssh-immortalwrt.html">Cách 2 (Mở SSH)</a>.</li>
+</ul>
+
+<h3 id="loi-scp">Lỗi <code>scp</code> báo giao thức hoặc subsystem</h3>
+<p>Dropbear SSH trên ROM gốc không hỗ trợ SFTP. Hãy thêm cờ <code>-O</code> để dùng giao thức SCP cũ (hoặc dùng WinSCP chế độ SCP trên Windows):</p>
+<div class="code-block"><pre><code>scp -O immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip root@192.168.1.1:/tmp/fip.bin</code></pre></div>
+
+<h3 id="loi-uart"><code>mtk_uartboot</code> báo Handshake timeout hoặc trắng màn hình sau <code>FIP received</code></h3>
+<ul>
+  <li>Kiểm tra <strong>TX/RX đã đấu chéo</strong> (TX mạch nạp ↔ RX bo mạch) và mạch chạy đúng mức <strong>3.3 V</strong> (tuyệt đối không dùng 5 V).</li>
+  <li>Chạy lệnh <code>mtk_uartboot</code> <em>trước</em> rồi mới cắm nguồn cho router.</li>
+  <li>Không mở <code>picocom</code> hoặc <code>PuTTY</code> cùng lúc khi <code>mtk_uartboot</code> đang chạy trên cùng cổng COM/ttyUSB.</li>
+  <li>Ngay khi hiện <code>FIP received</code>, nhấn <code>Ctrl+C</code> ở cửa sổ <code>mtk_uartboot</code> và mở <code>picocom</code> / <code>PuTTY</code> trong 1–2 giây.</li>
+  <li>Kiểm tra đúng file RAM payload cho NR3053 (<code>bl2-viettel-nr3053-ram.bin</code>), không nhầm sang file của Viettel 32X6.</li>
+  <li>Nếu bị treo ở tốc độ nạp cao, thêm cờ <code>--bl2-load-baudrate 115200</code>.</li>
+</ul>
+
+<h3 id="loi-tftp">TFTP timeout / Không tải được file</h3>
+<ul>
+  <li>Kiểm tra IP máy tính đúng là <strong><code>192.168.1.254/24</code></strong> (<code>serverip</code> mặc định của U-Boot ImmortalWrt), không Gateway, đã tắt VPN.</li>
+  <li>Trong U-Boot, chạy <code>printenv serverip ipaddr</code> để xác nhận là <code>192.168.1.254</code> và <code>192.168.1.1</code>.</li>
+  <li>Trên Windows <code>Tftpd64</code>: chạy quyền Administrator, mở Firewall cho UDP cổng 69 và chọn đúng card mạng <code>192.168.1.254</code> (không chọn <code>127.0.0.1</code>).</li>
+  <li>Trên Linux, tên file TFTP phân biệt chữ hoa/thường và phải trùng khớp từng ký tự với tên U-Boot yêu cầu.</li>
+</ul>
+
+<h3 id="loi-nmbm">Router không khởi động sau khi nạp / Xung đột NMBM cũ</h3>
+<ul>
+  <li>Trong bootmenu U-Boot, chọn <code>[4] Boot recovery system from NAND</code> (nếu đã cài) hoặc <code>[2] Boot system via TFTP</code> để chạy <code>initramfs-recovery.itb</code> trên RAM.</li>
+  <li>Nếu chuyển từ firmware có NMBM cũ và UBI không nhận phân vùng, chạy trong console U-Boot:
+    <div class="code-block"><pre><code>ubi part ubi
+run ubi_format</code></pre></div>
+  </li>
+  <li>Để đặt lại toàn bộ cấu hình U-Boot về mặc định, chọn mục <code>[a]</code> trong bootmenu hoặc gõ <code>run reset_factory &amp;&amp; reset</code>.</li>
+</ul>

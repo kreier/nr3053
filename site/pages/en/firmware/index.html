@@ -1,0 +1,98 @@
+<h1>Firmware Options for Viettel SDMC NR3053</h1>
+<p class="lead">
+  Three active community firmware options exist for the NR3053. Pick the one that matches your experience level,
+  package needs, and whether you want to keep the stock bootloader.
+</p>
+
+<h2 id="comparison">Side-by-Side Comparison</h2>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Firmware</th>
+        <th>Base / Kernel</th>
+        <th>Bootloader</th>
+        <th>Usable Storage</th>
+        <th>Highlights &amp; Trade-offs</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>ImmortalWrt 25.12 (v2.5.0)</strong><br /><span class="badge rec">Recommended</span></td>
+        <td>ImmortalWrt 25.12<br />Kernel 6.12 · <code>apk</code></td>
+        <td>Custom FIP (<code>bl-mt798x-dhcpd</code>)</td>
+        <td><strong>~234 MiB</strong> Native UBI</td>
+        <td>Huge overlay space, MediaTek <code>mt_wifi</code> / HNAT, active GitHub Releases, optional USB-mod support, full tuning support (802.11r/k/v + SQM).</td>
+      </tr>
+      <tr>
+        <td><strong>OpenWrt 24.10</strong><br /><span class="badge">Easiest Install</span></td>
+        <td>OpenWrt 24.10<br /><code>opkg</code> official repos</td>
+        <td><strong>Stock Viettel U-Boot</strong></td>
+        <td>Stock 32 MiB slot</td>
+        <td>No SSH unlock and no U-Boot replacement needed — flash directly via Stock Web Failsafe. Easy revert to stock ROM. Official OpenWrt 24.10 <code>opkg</code> compatibility.</td>
+      </tr>
+      <tr>
+        <td><strong>KeeneticOS 5.01</strong><br /><span class="badge warn">DIY Build</span></td>
+        <td>Keenetic KN-3811<br />Kernel 4.9 (SDK)</td>
+        <td>Custom Dual-Image BL2 + FIP (<code>v32</code>)</td>
+        <td>Dual 32 MiB + 162 MiB UBI</td>
+        <td>Polished Keenetic web UI, <code>hw_nat</code> + <code>warp</code> (~941 Mbps wired / ~960 Mbps 5 GHz), true A/B dual-image fallback. Must be compiled yourself from public SDK + KN-3811 image.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<h2 id="immortalwrt">1. ImmortalWrt 25.12 (<code>quytttb/immortalwrt-mt798x-rebase</code>)</h2>
+<p>
+  Maintained by <strong>quytttb</strong>, this fork targets <code>mediatek/filogic</code> (Linux 6.12) and publishes verified pre-built images with <code>sha256sums</code> on
+  <a href="https://github.com/quytttb/immortalwrt-mt798x-rebase/releases" target="_blank" rel="noopener">GitHub Releases</a> (latest: <code>v2.5.0</code>, 2026-10-30).
+</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Release Artifact (v2.5.0)</th>
+        <th class="num">Size</th>
+        <th>Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="mono">immortalwrt-mediatek-filogic-viettel_nr3053-squashfs-sysupgrade.itb</td><td class="num">28,463,376 B</td><td>Production firmware — flash via Web Failsafe, LuCI, or TFTP bootmenu <code>[5]</code>.</td></tr>
+      <tr><td class="mono">immortalwrt-mediatek-filogic-viettel_nr3053-initramfs-recovery.itb</td><td class="num">24,772,608 B</td><td>RAM-only recovery/test image — boot via TFTP <code>[2]</code> or install to NAND recovery <code>[6]</code>.</td></tr>
+      <tr><td class="mono">immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip</td><td class="num">938,352 B</td><td>ATF BL31 + ImmortalWrt U-Boot — write to <code>FIP</code> (<code>0x400000</code>) during initial install.</td></tr>
+      <tr><td class="mono">immortalwrt-mediatek-filogic-viettel_nr3053-preloader.bin</td><td class="num">172,544 B</td><td>BL2 preloader — <strong>high risk</strong>; do not flash unless specifically required.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="callout">
+  <div class="callout-title">USB Hardware Mod Note</div>
+  Release <code>v2.5.0</code> includes USB support specifically for NR3053 units that have had a <strong>physical USB hardware mod</strong> soldered onto the PCB. Unmodified NR3053 boards work normally (the USB controller stays unused), or you can check earlier releases such as <a href="https://github.com/quytttb/immortalwrt-mt798x-rebase/releases/tag/v2.4.5" target="_blank" rel="noopener"><code>v2.4.5</code></a>. Always verify downloads with <code>sha256sum -c sha256sums</code>.
+</div>
+
+<h2 id="openwrt-2410">2. OpenWrt 24.10 for Stock U-Boot (<code>aiot.io.vn</code>)</h2>
+<p>
+  Built by <strong>Ng Nghia Phan (AIoT.IO.VN)</strong> to match the stock Viettel U-Boot layout so you can install OpenWrt in minutes without unlocking SSH or replacing the bootloader (official upstream OpenWrt 25.12 support for NR3053 is not yet merged).
+</p>
+<ul>
+  <li><strong>Download folder:</strong> <a href="https://www.mediafire.com/folder/q9qnyei9ewnpu/nr3053" target="_blank" rel="noopener">MediaFire — NR3053 OpenWrt 24.10</a> (linked from the <a href="https://aiot.io.vn/firmware/viettel/viettel-sdmc-nr3053-posts/h%C6%B0%C6%A1ng-dan-flash-openwrt-khong-can-mo-ssh-nr3053/" target="_blank" rel="noopener">AIoT.IO.VN No-SSH Guide</a>)</li>
+  <li><strong>Primary image (first-time flash):</strong> <code>openwrt-mediatek-filogic-viettel_nr3053-stock-squashfs-factory_fix.bin</code></li>
+  <li><strong>Fallback image (if bootloop occurs):</strong> <code>openwrt-aiotiovn-mediatek-filogic-viettel_nr3053-stock-squashfs-factory.bin</code></li>
+  <li><strong>Packages:</strong> Compatible with official OpenWrt 24.10 repositories via <code>opkg install</code>.</li>
+</ul>
+
+<h2 id="keeneticos">3. KeeneticOS 5.01 DIY Port (<code>linhsayshii/keeneticos-nr3053</code>)</h2>
+<p>
+  An experimental port of <strong>KeeneticOS 5.01.C.7.0-4 (KN-3811)</strong> onto the Viettel NR3053 by <strong>linhsayshii</strong>.
+  Because Keenetic's <code>ndm</code> daemon, web UI, and drivers are proprietary, the repository does <strong>not</strong> distribute compiled firmware binaries — it provides kernel 4.9 patches (including the Dosilicon <code>DS35Q2GBS</code> SPI-NAND driver using read command <code>0x6B</code>), binary patches for 4-port MT7531 Ethernet and NR3053 GPIOs, and open-source dual-image bootloaders (<a href="https://github.com/linhsayshii/keeneticos-nr3053/releases/tag/v32" target="_blank" rel="noopener">Release <code>v32</code></a>).
+</p>
+<div class="code-block"><pre><code># Build KeeneticOS locally on Ubuntu 24.04 (ext4 filesystem, non-root user)
+git clone --depth 1 -b 5.01.C.7.0-4 https://github.com/keenetic/keenetic-sdk.git
+git clone https://github.com/linhsayshii/keeneticos-nr3053.git
+cd keeneticos-nr3053
+./scripts/apply-to-sdk.sh ../keenetic-sdk /path/to/KN-3811_stable_5.01.C.7.0-4.bin
+cd ../keenetic-sdk &amp;&amp; make -j$(nproc)
+python3 ../keeneticos-nr3053/tools/verify_fw.py bin/mt7981/*_Firmware-KN-3811-5.01.C.7.0-4.bin</code></pre></div>
+<p>
+  Note: Auto-updates are disabled (official KN-3811 images will <strong>not</strong> boot on NR3053), and upgrades are flashed through U-Boot Web Failsafe.
+</p>

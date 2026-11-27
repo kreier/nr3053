@@ -1,0 +1,113 @@
+<h1>Hardware Specifications &amp; Teardown</h1>
+<p class="lead">
+  Manufactured by <strong>Shenzhen SDMC Technology Co., Ltd.</strong> for Viettel's Home WiFi 6 lineup, the
+  <strong>SDMC NR3053</strong> packs remarkably generous hardware for a budget carrier router: a
+  <strong>MediaTek MT7981BA (Filogic 820)</strong> SoC, <strong>512 MiB DDR3L</strong>, <strong>256 MiB SPI NAND</strong>,
+  an integrated-FEM <strong>MT7976CN</strong> radio, and a clearly silkscreened <strong>3.3 V UART header</strong>.
+</p>
+
+<h2 id="hardware-summary">Hardware Specification Summary</h2>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>Specification</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Model / PCB</strong></td><td>Viettel SDMC NR3053 (AX3000)</td><td>OEM by SDMC · PCB revision <code>WIFI6-MT-02.C</code></td></tr>
+      <tr><td><strong>CPU / SoC</strong></td><td>MediaTek MT7981BA (Filogic 820)</td><td>Dual-core 64-bit ARM Cortex-A53 @ 1.3 GHz, hardware NAT (HNAT/WED)</td></tr>
+      <tr><td><strong>RAM</strong></td><td>512 MiB DDR3L</td><td>Linkage <code>4GF4MLF-GJS</code> (4 Gbit) — handles 40–60+ clients &amp; heavy packages</td></tr>
+      <tr><td><strong>Flash Storage</strong></td><td>256 MiB SPI NAND</td><td>Dosilicon <code>DS35Q2GBS</code> (2 Gbit, WSON-8, 128 KiB erase block, 2 KiB page)</td></tr>
+      <tr><td><strong>Wi-Fi 6 RF</strong></td><td>MediaTek MT7976CN</td><td>Dual-band AX3000: 2.4 GHz 574 Mbps (2×2 40 MHz) + 5 GHz 2402 Mbps (160 MHz); internal FEMs</td></tr>
+      <tr><td><strong>Ethernet Switch</strong></td><td>MediaTek MT7531AE</td><td>4× Gigabit RJ45 (1 WAN + 3 LAN), 2.5G SGMII (<code>2500base-x</code>) CPU uplink</td></tr>
+      <tr><td><strong>Antennas</strong></td><td>4× external 5 dBi</td><td>5 RF coaxial leads on PCB: 3× 5 GHz (<code>CONG3–5</code>, 2T3R/3T3R) + 2× 2.4 GHz (<code>CONG1–2</code>)</td></tr>
+      <tr><td><strong>Buttons &amp; LEDs</strong></td><td>Reset, WPS/Mesh · Dual-color LED</td><td>Reset = GPIO 1, WPS = GPIO 0; Status Green = GPIO 4, Red = GPIO 6 (all active-low)</td></tr>
+      <tr><td><strong>Serial Debug</strong></td><td>4-pin 3.3 V TTL UART</td><td>Exposed header silkscreened <code>GND</code>, <code>TX</code>, <code>RX</code>, <code>VCC</code> @ 115200 8N1</td></tr>
+      <tr><td><strong>Power Supply</strong></td><td>DC 12 V / 1.0 A – 1.5 A</td><td>Standard barrel jack</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<h2 id="teardown-overview">Inside the Enclosure: Heatsink, Antennas &amp; UART</h2>
+<p>
+  Removing the bottom screws and prying open the white plastic casing reveals the blue <code>WIFI6-MT-02.C</code> mainboard.
+  A large black-anodized aluminum heatsink (retained by four plastic push-pins) covers the SoC, RAM, switch, and Wi-Fi radio.
+</p>
+
+<figure class="photo">
+  <img src="{{ROOT}}images/nr3053-pcb-heatsink.jpg" alt="Front side of Viettel SDMC NR3053 PCB showing black aluminum heatsink, 5 antenna connectors, yellow 4-port Ethernet block, and UART pins" loading="lazy" />
+  <figcaption>
+    <strong>Front PCB with heatsink installed:</strong> Note the yellow 4-port Gigabit RJ45 block along the top edge, the two tactile buttons (<code>S1</code>/<code>S2</code>), the <strong>exposed 4-pin UART header</strong> in the upper-left corner (<code>GND</code>, <code>TX</code>, <code>RX</code>, <code>VCC</code>), and the <strong>5 coaxial antenna leads</strong> along the left/bottom edge (ports 1–3 for 5 GHz, ports 4–5 for 2.4 GHz). Photo: <a href="https://aiot.io.vn/serial/disassemble/kham-pha-phan-cung-viettel-nr3053/" target="_blank" rel="noopener">AIoT.IO.VN</a>.
+  </figcaption>
+</figure>
+
+<ul>
+  <li><strong>5-Lead RF Design:</strong> Three coaxial paths (<code>CONG3</code>, <code>CONG4</code>, <code>CONG5</code>) serve the 5 GHz band (2T3R/3T3R receive diversity for stronger client return signals), while two paths (<code>CONG1</code>, <code>CONG2</code>) serve 2.4 GHz (2×2 MIMO).</li>
+  <li><strong>Developer-Friendly UART:</strong> The 4-pin header at the top-left corner has clear silkscreen labels (<code>GND</code>, <code>TX</code>, <code>RX</code>, <code>VCC</code>), making serial console access and <code>mtk_uartboot</code> unbricking straightforward without probing hidden test pads.</li>
+  <li><strong>Unpopulated Right-Side Pads:</strong> The right side of the PCB contains unpopulated footprints where hardware modders can add an optional USB port (requiring a USB-enabled ImmortalWrt build).</li>
+</ul>
+
+<h2 id="main-ics">Core Semiconductors (Heatsink &amp; Shield Removed)</h2>
+<p>
+  Lifting the aluminum heatsink and opening the metal EMI shield frame exposes every major IC on the top of the board:
+</p>
+
+<figure class="photo">
+  <img src="{{ROOT}}images/nr3053-pcb-chips.jpg" alt="Close-up of Viettel SDMC NR3053 main ICs: MediaTek MT7981BA SoC, Linkage 512MB DDR3L RAM, MT7531AE Gigabit switch, and MT7976CN Wi-Fi 6 chip" loading="lazy" />
+  <figcaption>
+    <strong>Core ICs on <code>WIFI6-MT-02.C</code>:</strong> From left to right in the insets — <strong>MediaTek MT7976CN</strong> (dual-band Wi-Fi 6 RF with integrated FEMs), <strong>MediaTek MT7531AE</strong> (5-port Gigabit switch below the RJ45 jacks), and <strong>MediaTek MT7981BA</strong> (Filogic 820 dual-core Cortex-A53 SoC) paired inside the EMI shield with <strong>Linkage 4GF4MLF-GJS</strong> (512 MiB DDR3L RAM). Photo: <a href="https://aiot.io.vn/serial/disassemble/kham-pha-phan-cung-viettel-nr3053/" target="_blank" rel="noopener">AIoT.IO.VN</a>.
+  </figcaption>
+</figure>
+
+<ul>
+  <li><strong>MediaTek MT7981BA (Filogic 820):</strong> First-class mainline Linux and OpenWrt/ImmortalWrt support under the <code>mediatek/filogic</code> target, with open-source <code>mt76</code> wireless drivers and hardware packet acceleration (HNAT / WED).</li>
+  <li><strong>Linkage 4GF4MLF-GJS (512 MiB DDR3L):</strong> Double the memory of most budget AX3000 ISP routers, providing comfortable headroom for AdGuard Home, SQM/cake, WireGuard, or Tailscale.</li>
+  <li><strong>MediaTek MT7531AE:</strong> Dedicated Gigabit Ethernet switch connected to the SoC via a 2.5 Gbps internal link (<code>2500base-x</code>), routing all 4 physical RJ45 ports (<code>wan</code>, <code>lan1</code>, <code>lan2</code>, <code>lan3</code>).</li>
+  <li><strong>MediaTek MT7976CN:</strong> Companion Wi-Fi 6 RF transceiver supporting 1024-QAM and 160 MHz channel width on 5 GHz. Front-end modules (FEMs) are integrated directly inside the IC package.</li>
+</ul>
+
+<h2 id="back-pcb-nand">Rear PCB &amp; 256 MiB SPI NAND Flash</h2>
+<p>
+  Flipping the PCB reveals a clean underside with large copper ground pours for passive cooling and the single non-volatile storage chip:
+</p>
+
+<figure class="photo">
+  <img src="{{ROOT}}images/nr3053-pcb-back-nand.jpg" alt="Underside of Viettel SDMC NR3053 PCB highlighting the Dosilicon DS35Q2GBS 256 MiB SPI NAND Flash chip" loading="lazy" />
+  <figcaption>
+    <strong>Underside of the PCB:</strong> Highlighted in red is the <strong>Dosilicon DS35Q2GBS</strong> 2 Gbit (256 MiB) SPI NAND Flash in an 8-pin WSON-8 package. Photo: <a href="https://aiot.io.vn/serial/disassemble/kham-pha-phan-cung-viettel-nr3053/" target="_blank" rel="noopener">AIoT.IO.VN</a>.
+  </figcaption>
+</figure>
+
+<div class="callout warn">
+  <div class="callout-title">Dosilicon <code>DS35Q2GBS</code> Bootloader Compatibility</div>
+  The NR3053 uses a <strong>Dosilicon DS35Q2GBS</strong> 256 MiB SPI NAND chip. Never flash a BL2 preloader built for a different router or an old release that lacks DS35Q2GBS support — doing so will prevent booting from NAND and require <code>mtk_uartboot</code> recovery over UART.
+</div>
+
+<h2 id="gpio-pinout">Verified GPIO, LED &amp; Switch Pinout</h2>
+<p>
+  Extracted directly from <code>target/linux/mediatek/dts-ext/mt7981b-viettel-nr3053.dts</code>:
+</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Function</th>
+        <th>Pin / Port</th>
+        <th>Polarity / Detail</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>WPS / Mesh Button</strong></td><td class="mono">GPIO 0</td><td>Active-low (<code>KEY_WPS_BUTTON</code>); hold ~5 s at power-on for Stock Web Failsafe</td></tr>
+      <tr><td><strong>Reset Button</strong></td><td class="mono">GPIO 1</td><td>Active-low (<code>KEY_RESTART</code>); hold &gt;10 s for factory reset</td></tr>
+      <tr><td><strong>Status LED (Green)</strong></td><td class="mono">GPIO 4</td><td>Active-low (<code>green:status</code> / upgrade indicator)</td></tr>
+      <tr><td><strong>Status LED (Red)</strong></td><td class="mono">GPIO 6</td><td>Active-low (<code>red:status</code> / boot, failsafe, running)</td></tr>
+      <tr><td><strong>MT7531 Switch Interrupt</strong></td><td class="mono">GPIO 38</td><td>IRQ level-high</td></tr>
+      <tr><td><strong>MT7531 Switch Reset</strong></td><td class="mono">GPIO 39</td><td>Active-high (must stay high during operation)</td></tr>
+      <tr><td><strong>Ethernet Ports (MT7531)</strong></td><td class="mono">port@0 .. port@3</td><td><code>port@0</code> = WAN (MAC @ <code>Factory+0x0a</code>), <code>port@1..3</code> = LAN1–LAN3, <code>port@6</code> = CPU <code>2500base-x</code></td></tr>
+      <tr><td><strong>USB Controller (<code>xhci</code>)</strong></td><td class="mono">Disabled by default</td><td>No stock USB port; only enabled on NR3053 units with a hardware USB mod</td></tr>
+    </tbody>
+  </table>
+</div>

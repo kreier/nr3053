@@ -1,0 +1,134 @@
+<h1>256 MiB SPI NAND Partition Layout</h1>
+<p class="lead">
+  Exact flash map of the <strong>Dosilicon DS35Q2GBS</strong> 256 MiB SPI NAND chip
+  (<code>0x10000000</code> bytes = <strong>2,048 × 128 KiB</strong> erase blocks).
+  All firmware options share the exact same <strong>first 6.00 MiB</strong> header
+  (<code>BL2</code>, <code>u-boot-env</code>, <code>Factory</code>, <code>FIP</code>),
+  while reorganizing the remaining 250 MiB above <code>0x00600000</code>.
+</p>
+
+<h2 id="interactive-flash-map">Interactive 256 MiB Flash Diagram</h2>
+<p>
+  Hover or click any segment—or any row in the table below—to inspect exact hex address ranges, erase-block counts, and chip percentages.
+  Switch tabs to compare the <strong>ImmortalWrt Native UBI</strong> layout against the <strong>Stock Viettel ROM</strong> and the <strong>KeeneticOS Dual-Image</strong> layout.
+</p>
+
+<div class="card">
+  <div class="flash-header">
+    <div>
+      <strong id="layout-title">256 MiB SPI NAND Layout (Dosilicon DS35Q2GBS)</strong>
+      <div id="layout-summary" style="font-size:0.83rem;color:var(--muted);margin-top:2px;"></div>
+    </div>
+    <div class="mode-tabs" role="tablist" aria-label="Flash partition layout mode">
+      <button type="button" class="mode-btn active" data-mode="immortalwrt">ImmortalWrt (UBI)</button>
+      <button type="button" class="mode-btn" data-mode="stock">Stock Viettel</button>
+      <button type="button" class="mode-btn" data-mode="keenetic">KeeneticOS Dual</button>
+    </div>
+  </div>
+
+  <div class="bar-meta">
+    <span><strong>Full 256 MiB Chip</strong> (240.00 MiB / 93.75% partitioned · 16.00 MiB / 6.25% BBT/tail reserve)</span>
+    <span class="mono">0x00000000 → 0x10000000</span>
+  </div>
+  <div id="full-bar" class="flash-bar" role="group" aria-label="Full 256 MiB flash layout"></div>
+  <div class="bar-ticks mono">
+    <span>0 MiB</span>
+    <span>64 MiB (25%)</span>
+    <span>128 MiB (50%)</span>
+    <span>192 MiB (75%)</span>
+    <span>256 MiB</span>
+  </div>
+
+  <div class="zoom-divider">
+    <div class="bar-meta">
+      <span><strong>Zoom: First 6.00 MiB Boot &amp; Calibration Region</strong> (2.34% of chip · shared across all firmwares)</span>
+      <span class="mono">0x00000000 → 0x00600000</span>
+    </div>
+    <div id="boot-bar" class="flash-bar boot-bar" role="group" aria-label="First 6 MiB boot partitions"></div>
+    <div class="bar-meta" style="margin-top:0.38rem;margin-bottom:0;">
+      <span>White bottom bar inside <code>FIP</code> shows actual ImmortalWrt v2.5.0 <code>bl31-uboot.fip</code> payload (916.4 KiB = 44.7% of 2 MiB slot).</span>
+      <span><strong>FIP Slot:</strong> 2.00 MiB (0.78%)</span>
+    </div>
+  </div>
+
+  <div class="inspector" aria-live="polite">
+    <div class="inspector-top">
+      <div class="inspector-id">
+        <span id="insp-swatch" class="swatch"></span>
+        <strong id="insp-title" class="mono">FIP</strong>
+        <span id="insp-mtd" class="pill mono">mtd3</span>
+      </div>
+      <div id="insp-metrics" class="inspector-metrics mono"></div>
+    </div>
+    <div class="inspector-bottom">
+      <span id="insp-desc"></span>
+      <span id="insp-range" class="mono"></span>
+    </div>
+  </div>
+
+  <div id="legend" class="legend-grid"></div>
+</div>
+
+<h2 id="immortalwrt-table">ImmortalWrt Native UBI Partition Table</h2>
+<p>
+  Every row below is synchronized two-way with the diagram above (sourced from <code>mt7981b-viettel-nr3053.dts</code>).
+  Custom U-Boot is flashed into the highlighted <strong><code>FIP</code></strong> partition at <code>0x00400000</code>.
+</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>MTD</th>
+        <th>Name</th>
+        <th>Address Range</th>
+        <th class="num">Size</th>
+        <th class="num">% of 256 MiB</th>
+        <th>Role</th>
+      </tr>
+    </thead>
+    <tbody>
+{{PARTITION_ROWS}}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2">Total (5 partitions + reserve)</td>
+        <td class="mono">0x00000000–0x10000000</td>
+        <td class="num">256.00 MiB</td>
+        <td class="num">100.00%</td>
+        <td>240.00 MiB (93.75%) partitioned · 16.00 MiB (6.25%) tail BBT reserve</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<h2 id="stock-vs-immortalwrt">Why Stock MTD Numbers Shift by One</h2>
+<p>
+  On the stock Viettel firmware, <code>mtd0</code> exposes the entire raw 256 MiB chip (<code>"spi0.0"</code>), so individual partitions start at <code>mtd1</code>.
+  Under ImmortalWrt, <code>BL2</code> is <code>mtd0</code>. <strong>The physical NAND offsets of the first 6 MiB are identical</strong>:
+</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Physical NAND Offset</th>
+        <th>Stock Viettel ROM</th>
+        <th>ImmortalWrt 25.12</th>
+        <th>Migration Note</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="mono">0x000000–0x100000</td><td><code>BL2</code> (<code>mtd1</code>)</td><td><code>BL2</code> (<code>mtd0</code>)</td><td>Keep stock BL2 unless specifically needed (high brick risk).</td></tr>
+      <tr><td class="mono">0x100000–0x200000</td><td><code>u-boot-env</code> (<code>mtd2</code>)</td><td><code>u-boot-env</code> (<code>mtd1</code>)</td><td>Legacy env; ImmortalWrt stores active env inside UBI.</td></tr>
+      <tr><td class="mono">0x200000–0x400000</td><td><code>Factory</code> (<code>mtd3</code>)</td><td><code>Factory</code> (<code>mtd2</code>)</td><td><strong>NEVER ERASE</strong> — holds Wi-Fi RF EEPROM &amp; MACs.</td></tr>
+      <tr class="uboot-row"><td class="mono">0x400000–0x600000</td><td><code>FIP</code> (<code>mtd4</code>)</td><td><code>FIP</code> (<code>mtd3</code>)</td><td><strong>Flash ImmortalWrt U-Boot FIP here</strong> (same offset <code>0x400000</code>).</td></tr>
+      <tr><td class="mono">0x600000–0x0f000000</td><td><code>firmware</code> (32M) + <code>firmware2</code> (32M) + <code>rootfs_data</code> (142M)</td><td><code>ubi</code> (234 MiB Native UBI)</td><td>Incompatible OS layout — cannot run <code>sysupgrade</code> directly from stock.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="callout danger">
+  <div class="callout-title">Native UBI vs. Legacy NMBM Warning</div>
+  Stock Viettel firmware uses MediaTek's <strong>NMBM</strong> bad-block mapping layer and flat <code>firmware</code>/<code>firmware2</code> partitions,
+  whereas ImmortalWrt 25.12 uses <strong>Native UBI</strong> (without NMBM) across 234 MiB. Once ImmortalWrt U-Boot formats the UBI container,
+  stock OS data above <code>0x600000</code> is wiped. Always back up stock MTD partitions (especially <code>Factory</code>) first.
+</div>

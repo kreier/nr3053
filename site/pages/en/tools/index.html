@@ -1,0 +1,78 @@
+<h1>Tools &amp; Troubleshooting</h1>
+<p class="lead">
+  Command reference for <a href="https://github.com/quytttb/nr3053-tools" target="_blank" rel="noopener"><code>nr3053-tools</code></a>
+  and solutions for the most common flashing, networking, TFTP, and UART recovery issues on the Viettel SDMC NR3053.
+</p>
+
+<h2 id="nr3053-tools"><code>quytttb/nr3053-tools</code> Reference</h2>
+<p>
+  Host-side Python utilities built specifically for the Viettel SDMC NR3053:
+</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Tool</th>
+        <th>Purpose</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="mono">unlock_nr3053.py</td><td>Downloads, patches, and re-uploads the stock router configuration backup to enable SSH &amp; Telnet access (default password becomes <code>admin</code>).</td></tr>
+      <tr><td class="mono">factory/patch_factory_throughwall.py</td><td>Offline patcher for an exact 2 MiB NR3053 <code>Factory</code> dump that applies verified through-wall Wi-Fi calibration values, printing before/after SHA-256 checksums without touching the router directly.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="code-block"><pre><code># Install nr3053-tools
+git clone https://github.com/quytttb/nr3053-tools.git
+cd nr3053-tools
+python3 -m pip install -r requirements.txt
+
+# 1. Unlock SSH/Telnet (after factory reset, password = bottom-label S/N)
+python3 unlock_nr3053.py --password YOUR_SERIAL_NUMBER
+
+# 2. Optional: Offline Factory through-wall calibration patch (exact 2 MiB Factory dump)
+python3 factory/patch_factory_throughwall.py stock_Factory.bin
+python3 factory/patch_factory_throughwall.py --check stock_Factory.throughwall_mtd_Factory_0x0-0x200000.bin</code></pre></div>
+
+<h2 id="troubleshooting">Common Issues &amp; Fixes</h2>
+
+<h3 id="issue-failsafe">Stock Web Failsafe Won't Open</h3>
+<ul>
+  <li>Confirm your Ethernet cable is plugged into a <strong>LAN</strong> port (not WAN) and your PC static IP is <code>192.168.1.2/24</code> (for stock U-Boot) or <code>192.168.1.254/24</code> (for ImmortalWrt U-Boot).</li>
+  <li>Disable Wi-Fi and any active VPNs on your PC while flashing, and use an incognito browser tab to avoid stale cache.</li>
+  <li>Ensure you held the <strong>MESH</strong> button (not Reset) before plugging power in and released once the LED turned solid green (~5 s).</li>
+  <li>Some older stock NR3053 batches lack Web Failsafe entirely — use <a href="../install/ssh-immortalwrt.html">Method 2 (Unlock SSH)</a> instead.</li>
+</ul>
+
+<h3 id="issue-scp"><code>scp</code> Fails with Subsystem or Protocol Error</h3>
+<p>Stock Dropbear SSH does not implement SFTP. Pass <code>-O</code> to force the legacy SCP protocol (or use WinSCP in SCP mode on Windows):</p>
+<div class="code-block"><pre><code>scp -O immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip root@192.168.1.1:/tmp/fip.bin</code></pre></div>
+
+<h3 id="issue-uart"><code>mtk_uartboot</code> Handshake Timeout or Blank Console After <code>FIP received</code></h3>
+<ul>
+  <li>Verify <strong>TX/RX are crossed</strong> (Adapter TX ↔ Board RX) and the adapter is strictly <strong>3.3 V</strong> (not 5 V).</li>
+  <li>Start <code>mtk_uartboot</code> <em>before</em> plugging in router power.</li>
+  <li>Never open <code>picocom</code> or <code>PuTTY</code> on the same serial port while <code>mtk_uartboot</code> is running.</li>
+  <li>As soon as <code>FIP received</code> appears, hit <code>Ctrl+C</code> in the <code>mtk_uartboot</code> window and open <code>picocom</code> / <code>PuTTY</code> within 1–2 seconds.</li>
+  <li>Confirm you are using the NR3053 RAM payload (<code>bl2-viettel-nr3053-ram.bin</code>), not the Viettel 32X6 payload.</li>
+  <li>If the transfer stalls at high baud, add <code>--bl2-load-baudrate 115200</code>.</li>
+</ul>
+
+<h3 id="issue-tftp">TFTP Timeout / File Not Found</h3>
+<ul>
+  <li>Check PC IP is <strong><code>192.168.1.254/24</code></strong> (ImmortalWrt U-Boot default <code>serverip</code>), with no gateway and VPN disabled.</li>
+  <li>In U-Boot console, verify <code>printenv serverip ipaddr</code> returns <code>192.168.1.254</code> and <code>192.168.1.1</code>.</li>
+  <li>On Windows <code>Tftpd64</code>, run as Administrator, allow UDP port 69 in Windows Firewall, and select the <code>192.168.1.254</code> interface (not <code>127.0.0.1</code>).</li>
+  <li>On Linux, filenames are case-sensitive and must match U-Boot's expected filename character for character.</li>
+</ul>
+
+<h3 id="issue-nmbm">Router Won't Boot After Flashing / Legacy NMBM Conflict</h3>
+<ul>
+  <li>From U-Boot bootmenu, select <code>[4] Boot recovery system from NAND</code> (if installed) or <code>[2] Boot system via TFTP</code> to boot <code>initramfs-recovery.itb</code> in RAM.</li>
+  <li>If switching from a legacy NMBM firmware and UBI refuses to mount, run in U-Boot console:
+    <div class="code-block"><pre><code>ubi part ubi
+run ubi_format</code></pre></div>
+  </li>
+  <li>To reset U-Boot settings back to factory defaults, select bootmenu <code>[a]</code> or run <code>run reset_factory &amp;&amp; reset</code>.</li>
+</ul>

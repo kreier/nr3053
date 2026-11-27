@@ -1,0 +1,134 @@
+<h1>Bố cục phân vùng SPI NAND 256 MiB</h1>
+<p class="lead">
+  Sơ đồ bộ nhớ chính xác của chip SPI NAND <strong>Dosilicon DS35Q2GBS</strong> 256 MiB
+  (<code>0x10000000</code> byte = <strong>2.048 × 128 KiB</strong> erase block).
+  Mọi bản firmware đều giữ nguyên <strong>6,00 MiB đầu tiên</strong>
+  (<code>BL2</code>, <code>u-boot-env</code>, <code>Factory</code>, <code>FIP</code>)
+  và chỉ tổ chức lại 250 MiB phía sau địa chỉ <code>0x00600000</code>.
+</p>
+
+<h2 id="so-do-tuong-tac">Sơ đồ Flash 256 MiB tương tác</h2>
+<p>
+  Di chuột hoặc nhấp vào từng phân vùng—hoặc từng dòng trong bảng bên dưới—để xem địa chỉ hex, số lượng block xóa và tỷ lệ phần trăm dung lượng chip.
+  Chuyển các tab để so sánh giữa <strong>ImmortalWrt Native UBI</strong>, <strong>ROM gốc Viettel</strong> và <strong>KeeneticOS Dual-Image</strong>.
+</p>
+
+<div class="card">
+  <div class="flash-header">
+    <div>
+      <strong id="layout-title">Bố cục SPI NAND 256 MiB (Dosilicon DS35Q2GBS)</strong>
+      <div id="layout-summary" style="font-size:0.83rem;color:var(--muted);margin-top:2px;"></div>
+    </div>
+    <div class="mode-tabs" role="tablist" aria-label="Chế độ bố cục phân vùng Flash">
+      <button type="button" class="mode-btn active" data-mode="immortalwrt">ImmortalWrt (UBI)</button>
+      <button type="button" class="mode-btn" data-mode="stock">ROM gốc Viettel</button>
+      <button type="button" class="mode-btn" data-mode="keenetic">KeeneticOS Dual</button>
+    </div>
+  </div>
+
+  <div class="bar-meta">
+    <span><strong>Toàn bộ chip 256 MiB</strong> (240,00 MiB / 93,75% đã phân vùng · 16,00 MiB / 6,25% dự phòng BBT/cuối chip)</span>
+    <span class="mono">0x00000000 → 0x10000000</span>
+  </div>
+  <div id="full-bar" class="flash-bar" role="group" aria-label="Bố cục toàn bộ chip 256 MiB"></div>
+  <div class="bar-ticks mono">
+    <span>0 MiB</span>
+    <span>64 MiB (25%)</span>
+    <span>128 MiB (50%)</span>
+    <span>192 MiB (75%)</span>
+    <span>256 MiB</span>
+  </div>
+
+  <div class="zoom-divider">
+    <div class="bar-meta">
+      <span><strong>Phóng to: 6,00 MiB đầu (Vùng Boot &amp; Hiệu chuẩn)</strong> (2,34% chip · dùng chung cho mọi firmware)</span>
+      <span class="mono">0x00000000 → 0x00600000</span>
+    </div>
+    <div id="boot-bar" class="flash-bar boot-bar" role="group" aria-label="6 MiB vùng boot đầu chip"></div>
+    <div class="bar-meta" style="margin-top:0.38rem;margin-bottom:0;">
+      <span>Thanh trắng dưới đáy vùng <code>FIP</code> biểu thị dung lượng thực tế của <code>bl31-uboot.fip</code> v2.5.0 (916,4 KiB = 44,7% vùng 2 MiB).</span>
+      <span><strong>Vùng FIP:</strong> 2,00 MiB (0,78%)</span>
+    </div>
+  </div>
+
+  <div class="inspector" aria-live="polite">
+    <div class="inspector-top">
+      <div class="inspector-id">
+        <span id="insp-swatch" class="swatch"></span>
+        <strong id="insp-title" class="mono">FIP</strong>
+        <span id="insp-mtd" class="pill mono">mtd3</span>
+      </div>
+      <div id="insp-metrics" class="inspector-metrics mono"></div>
+    </div>
+    <div class="inspector-bottom">
+      <span id="insp-desc"></span>
+      <span id="insp-range" class="mono"></span>
+    </div>
+  </div>
+
+  <div id="legend" class="legend-grid"></div>
+</div>
+
+<h2 id="bang-phan-vung">Bảng phân vùng ImmortalWrt Native UBI</h2>
+<p>
+  Mỗi hàng trong bảng đồng bộ hai chiều với sơ đồ bên trên (lấy từ <code>mt7981b-viettel-nr3053.dts</code>).
+  U-Boot tùy chỉnh được nạp vào phân vùng <strong><code>FIP</code></strong> được tô sáng tại địa chỉ <code>0x00400000</code>.
+</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>MTD</th>
+        <th>Tên</th>
+        <th>Dải địa chỉ</th>
+        <th class="num">Kích thước</th>
+        <th class="num">% / 256 MiB</th>
+        <th>Vai trò</th>
+      </tr>
+    </thead>
+    <tbody>
+{{PARTITION_ROWS}}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2">Tổng cộng (5 phân vùng + dự phòng)</td>
+        <td class="mono">0x00000000–0x10000000</td>
+        <td class="num">256.00 MiB</td>
+        <td class="num">100.00%</td>
+        <td>240,00 MiB (93,75%) phân vùng · 16,00 MiB (6,25%) dự phòng BBT cuối chip</td>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<h2 id="khac-biet-mtd">Tại sao số thứ tự MTD trên ROM gốc lệch đi 1</h2>
+<p>
+  Trên ROM gốc Viettel, <code>mtd0</code> là toàn bộ chip NAND raw 256 MiB (<code>"spi0.0"</code>), nên các phân vùng con bắt đầu từ <code>mtd1</code>.
+  Trên ImmortalWrt, <code>BL2</code> là <code>mtd0</code>. Tuy khác số thứ tự MTD, <strong>địa chỉ vật lý của 6 MiB đầu hoàn toàn trùng khớp</strong>:
+</p>
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Offset vật lý trên NAND</th>
+        <th>ROM gốc Viettel</th>
+        <th>ImmortalWrt 25.12</th>
+        <th>Ghi chú khi chuyển đổi</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="mono">0x000000–0x100000</td><td><code>BL2</code> (<code>mtd1</code>)</td><td><code>BL2</code> (<code>mtd0</code>)</td><td>Giữ nguyên BL2 gốc nếu không có lý do đặc biệt (rủi ro brick cao).</td></tr>
+      <tr><td class="mono">0x100000–0x200000</td><td><code>u-boot-env</code> (<code>mtd2</code>)</td><td><code>u-boot-env</code> (<code>mtd1</code>)</td><td>Env cũ; ImmortalWrt lưu env mới trong volume UBI.</td></tr>
+      <tr><td class="mono">0x200000–0x400000</td><td><code>Factory</code> (<code>mtd3</code>)</td><td><code>Factory</code> (<code>mtd2</code>)</td><td><strong>TUYỆT ĐỐI KHÔNG GHI ĐÈ</strong> — chứa RF EEPROM &amp; MAC.</td></tr>
+      <tr class="uboot-row"><td class="mono">0x400000–0x600000</td><td><code>FIP</code> (<code>mtd4</code>)</td><td><code>FIP</code> (<code>mtd3</code>)</td><td><strong>Ghi file FIP U-Boot ImmortalWrt vào đây</strong> (cùng offset <code>0x400000</code>).</td></tr>
+      <tr><td class="mono">0x600000–0x0f000000</td><td><code>firmware</code> (32M) + <code>firmware2</code> (32M) + <code>rootfs_data</code> (142M)</td><td><code>ubi</code> (234 MiB Native UBI)</td><td>Khác layout hệ điều hành — không thể chạy <code>sysupgrade</code> thẳng từ ROM gốc.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="callout danger">
+  <div class="callout-title">Cảnh báo Native UBI so với NMBM cũ</div>
+  ROM gốc Viettel sử dụng lớp quản lý bad-block <strong>NMBM</strong> cùng hai vùng <code>firmware</code>/<code>firmware2</code> phẳng,
+  trong khi ImmortalWrt 25.12 sử dụng <strong>Native UBI</strong> (không NMBM) rộng 234 MiB. Khi U-Boot ImmortalWrt định dạng lại vùng UBI,
+  toàn bộ dữ liệu OS cũ phía trên <code>0x600000</code> sẽ bị xóa. Luôn sao lưu các phân vùng gốc (nhất là <code>Factory</code>) trước khi thực hiện.
+</div>

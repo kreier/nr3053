@@ -1,0 +1,118 @@
+<h1>2. Mở khóa SSH &amp; Cài đặt ImmortalWrt 25.12</h1>
+<p class="lead">
+  Phương pháp thuần phần mềm không cần tháo vỏ máy, cho phép đăng nhập SSH với quyền root để sao lưu phân vùng
+  <code>Factory</code> quan trọng và cài đặt <strong>ImmortalWrt 25.12</strong> với đầy đủ <strong>234 MiB Native UBI</strong>.
+</p>
+
+<h2 id="tai-file">Bước 1: Tải các file firmware cần thiết</h2>
+<p>
+  Tải bản phát hành mới nhất cho NR3053 từ <a href="https://github.com/quytttb/immortalwrt-mt798x-rebase/releases" target="_blank" rel="noopener">quytttb/immortalwrt-mt798x-rebase Releases</a> và kiểm tra mã băm:
+</p>
+<ul>
+  <li><strong>Bootloader (FIP):</strong> <code>immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip</code></li>
+  <li><strong>Firmware:</strong> <code>immortalwrt-mediatek-filogic-viettel_nr3053-squashfs-sysupgrade.itb</code></li>
+  <li><strong>Mã kiểm tra:</strong> <code>sha256sums</code></li>
+</ul>
+<div class="code-block"><pre><code>sha256sum -c sha256sums --ignore-missing</code></pre></div>
+
+<h2 id="mo-khoa-ssh">Bước 2: Factory Reset &amp; Mở khóa SSH</h2>
+<ol>
+  <li>Cắm cáp Ethernet từ máy tính vào một cổng <strong>LAN</strong> của NR3053 (IP router mặc định: <code>192.168.1.1</code>).</li>
+  <li><strong>Factory reset</strong> router: nhấn giữ nút <code>Reset</code> <strong>hơn 10 giây</strong> cho đến khi đèn tắt rồi sáng lại. Sau khi reset, mật khẩu trang quản trị web sẽ là <strong>Serial Number (S/N)</strong> in dưới đáy router.</li>
+  <li>Clone và chạy công cụ <a href="https://github.com/quytttb/nr3053-tools" target="_blank" rel="noopener"><code>quytttb/nr3053-tools</code></a>:</li>
+</ol>
+
+<h3 id="mo-ssh-linux">Linux / macOS</h3>
+<div class="code-block"><pre><code>git clone https://github.com/quytttb/nr3053-tools.git
+cd nr3053-tools
+pip3 install -r requirements.txt
+python3 unlock_nr3053.py --password SERIAL_NUMBER_CUA_BAN</code></pre></div>
+
+<h3 id="mo-ssh-windows">Windows (PowerShell)</h3>
+<div class="code-block"><pre><code>git clone https://github.com/quytttb/nr3053-tools.git
+cd nr3053-tools
+py -m pip install -r requirements.txt
+py unlock_nr3053.py --password SERIAL_NUMBER_CUA_BAN</code></pre></div>
+
+<div class="callout">
+  <div class="callout-title">Dự phòng: Tải thủ công file <code>config.bin</code></div>
+  Nếu script báo <code>config.cgi</code> chỉ trả về JSON, hãy đăng nhập trang web gốc, tải file <code>config.bin</code> thủ công ở mục <strong>Sao lưu / Backup</strong> rồi truyền qua tham số <code>--config-input</code> (vẫn giữ <code>--password</code> để script đăng nhập và tải ngược bản đã vá lên router):
+  <div class="code-block"><pre><code>python3 unlock_nr3053.py --password SERIAL_NUMBER_CUA_BAN --config-input /duong/dan/config.bin</code></pre></div>
+</div>
+
+<p>Chờ router khởi động lại xong rồi kết nối SSH (mật khẩu sau khi unlock là <code>admin</code>):</p>
+<div class="code-block"><pre><code>ssh root@192.168.1.1
+# Mật khẩu: admin</code></pre></div>
+
+<h2 id="sao-luu-mtd">Bước 3: Kiểm tra MTD &amp; Sao lưu phân vùng <code>Factory</code></h2>
+<div class="callout danger">
+  <div class="callout-title">Sao lưu trước khi ghi Flash</div>
+  Luôn kiểm tra <code>/proc/mtd</code> và chép các phân vùng <code>BL2</code>, <code>u-boot-env</code>, <code>Factory</code> và <code>FIP</code> ra máy tính trước khi ghi đè. Tuyệt đối không xóa <code>Factory</code> (<code>mtd3</code> trên ROM gốc).
+</div>
+
+<p>Trong cửa sổ SSH của router, kiểm tra bố cục phân vùng gốc:</p>
+<div class="code-block"><pre><code>cat /proc/mtd
+# Kết quả điển hình ROM gốc NR3053:
+# mtd0: 10000000 00020000 "spi0.0"      &lt;- Toàn bộ NAND raw 256 MiB
+# mtd1: 00100000 00020000 "BL2"
+# mtd2: 00100000 00020000 "u-boot-env"
+# mtd3: 00200000 00020000 "Factory"     &lt;- TUYỆT ĐỐI KHÔNG GHI
+# mtd4: 00200000 00020000 "FIP"         &lt;- Ghi FIP ImmortalWrt vào đây
+# mtd5: 02000000 00020000 "firmware"
+# mtd6: 02000000 00020000 "firmware2"
+# mtd7: 08e00000 00020000 "rootfs_data"
+
+# Dump các phân vùng boot &amp; hiệu chuẩn ra /tmp
+dd if=/dev/mtd1 of=/tmp/stock_BL2.bin
+dd if=/dev/mtd2 of=/tmp/stock_uboot_env.bin
+dd if=/dev/mtd3 of=/tmp/stock_Factory.bin
+dd if=/dev/mtd4 of=/tmp/stock_FIP.bin
+sha256sum /tmp/stock_*.bin</code></pre></div>
+
+<p>Trên <strong>máy tính</strong>, chép các file sao lưu về cất giữ (thêm cờ <code>-O</code> nếu OpenSSH báo lỗi giao thức SFTP/SCP cũ):</p>
+<div class="code-block"><pre><code>mkdir -p nr3053-backup
+scp -O root@192.168.1.1:/tmp/stock_*.bin ./nr3053-backup/</code></pre></div>
+
+<h2 id="ghi-fip">Bước 4: Ghi FIP U-Boot ImmortalWrt vào NAND</h2>
+<p>Trên <strong>máy tính</strong>, sao chép file FIP đã kiểm tra SHA-256 sang <code>/tmp/fip.bin</code> trên router:</p>
+<div class="code-block"><pre><code># Chạy trên máy tính (dùng `scp -O` nếu máy tính yêu cầu legacy SCP)
+scp immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip root@192.168.1.1:/tmp/fip.bin</code></pre></div>
+
+<p>Quay lại cửa sổ <strong>SSH của router</strong>, xác nhận phân vùng <code>FIP</code> (kích thước <code>0x00200000</code> = 2 MiB) rồi ghi:</p>
+<div class="code-block"><pre><code>cat /proc/mtd | grep FIP
+mtd write /tmp/fip.bin FIP</code></pre></div>
+<p>Kết quả thành công:</p>
+<div class="code-block"><pre><code>Unlocking FIP ...
+Writing from /tmp/fip.bin to FIP ...     [w]</code></pre></div>
+
+<details>
+  <summary>Trường hợp ROM gốc không có tên MTD <code>FIP</code> trong <code>/proc/mtd</code></summary>
+  <p style="font-size:0.86rem;color:var(--muted);">
+    FIP nằm tại offset vật lý <code>0x400000</code> (4 MiB). Với erase block 128 KiB (<code>131072 B</code>), ta có <code>seek = 0x400000 / 0x20000 = 32</code>:
+  </p>
+  <div class="code-block"><pre><code>dd if=/tmp/fip.bin of=/dev/mtd0 bs=131072 seek=32 conv=sync</code></pre></div>
+</details>
+
+<p>Đồng bộ bộ đệm và khởi động lại sang U-Boot ImmortalWrt:</p>
+<div class="code-block"><pre><code>sync &amp;&amp; reboot</code></pre></div>
+
+<h2 id="nap-sysupgrade">Bước 5: Nạp ImmortalWrt qua Web Failsafe</h2>
+<p>
+  Do vùng NAND phía trên <code>0x600000</code> vẫn đang theo layout phẳng của ROM gốc (chưa có UBI hợp lệ), U-Boot ImmortalWrt sẽ tự động vào chế độ <strong>Web Failsafe</strong>.
+</p>
+<div class="callout warn">
+  <div class="callout-title">Quan trọng: Đặt IP tĩnh <code>192.168.1.254</code></div>
+  U-Boot ImmortalWrt dùng mặc định <code>serverip = 192.168.1.254</code> (khác với <code>192.168.1.2</code> trên U-Boot gốc). Hãy đặt IP cổng mạng máy tính thành <code>192.168.1.254/24</code>.
+</div>
+<ol>
+  <li>Đặt IP tĩnh cho cổng Ethernet máy tính là <strong><code>192.168.1.254</code></strong> / Subnet Mask <code>255.255.255.0</code> (Linux: <code>sudo ip addr add 192.168.1.254/24 dev eth0</code>; Windows CMD Admin: <code>netsh interface ip set address name="Ethernet" static 192.168.1.254 255.255.255.0</code>).</li>
+  <li>Mở trình duyệt truy cập <code>http://192.168.1.1/</code> — giao diện <strong>FIRMWARE UPDATE</strong> sẽ hiện ra.</li>
+  <li>Chọn file <code>immortalwrt-mediatek-filogic-viettel_nr3053-squashfs-sysupgrade.itb</code> rồi nhấn <strong>Upload → Update</strong>.</li>
+  <li>Chờ ~3 phút để U-Boot tự định dạng phân vùng Native UBI 234 MiB, nạp ảnh FIT và tự khởi động vào ImmortalWrt.</li>
+  <li>Chuyển máy tính về nhận IP tự động (DHCP) và truy cập <code>http://192.168.1.1/</code> (LuCI) hoặc <code>ssh root@192.168.1.1</code>.</li>
+</ol>
+
+<h2 id="nang-cap-sau-nay">Nâng cấp firmware sau này</h2>
+<p>
+  Khi đã chạy ImmortalWrt, các lần cập nhật sau <strong>không cần</strong> ghi lại FIP hay BL2 — chỉ cần tải file <code>*-squashfs-sysupgrade.itb</code> mới trong LuCI tại <strong>System → Backup / Flash Firmware</strong> (hoặc lệnh <code>sysupgrade</code> qua SSH).
+</p>

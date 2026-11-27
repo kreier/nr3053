@@ -1,0 +1,121 @@
+<h1>3. UART Recovery &amp; TFTP Boot</h1>
+<p class="lead">
+  Because the NR3053 has an <strong>exposed, clearly labeled 4-pin UART header</strong> and an immutable MediaTek BootROM,
+  you can safely test <code>initramfs-recovery.itb</code> in RAM without touching NAND, or completely unbrick a router
+  with a bad U-Boot or BL2 using <code>mtk_uartboot</code>.
+</p>
+
+<h2 id="uart-pinout">UART Wiring &amp; Serial Settings</h2>
+<div class="callout danger">
+  <div class="callout-title">3.3 V TTL Only — Never Connect <code>VCC</code></div>
+  Use a <strong>3.3 V</strong> USB-to-TTL serial adapter (e.g., CP2102, FT232RL, CH340 set to 3.3 V). Never use 5 V logic, and leave the router's <code>VCC</code> pin unconnected. Cross TX and RX: Adapter <code>TX</code> → Board <code>RX</code>, Adapter <code>RX</code> → Board <code>TX</code>, Adapter <code>GND</code> → Board <code>GND</code>.
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Board Pin (Top-Left of PCB)</th>
+        <th>Connect To USB-TTL</th>
+        <th>Serial Parameters</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="mono"><strong>GND</strong></td><td>Adapter <code>GND</code></td><td rowspan="4"><strong>115200 baud</strong><br />8 data bits, No parity, 1 stop bit (<code>115200 8N1</code>)<br />Flow control: None</td></tr>
+      <tr><td class="mono"><strong>TX</strong></td><td>Adapter <code>RX</code></td></tr>
+      <tr><td class="mono"><strong>RX</strong></td><td>Adapter <code>TX</code></td></tr>
+      <tr><td class="mono"><strong>VCC</strong></td><td><em>Do not connect</em></td></tr>
+    </tbody>
+  </table>
+</div>
+<p>
+  See the exact top-left header location in the <a href="../hardware/#teardown-overview">front PCB teardown photo</a>.
+</p>
+
+<h2 id="tftp-setup">Step 1: Prepare TFTP Server &amp; Static IP</h2>
+<p>
+  Connect an Ethernet cable from your PC to a <strong>LAN</strong> port on the NR3053 (leave WAN unplugged), and set your PC static IP to <strong><code>192.168.1.254/24</code></strong> (no gateway, no DNS, VPN off).
+</p>
+
+<h3 id="tftp-linux">Linux (<code>tftpd-hpa</code> + <code>picocom</code>)</h3>
+<div class="code-block"><pre><code>sudo apt install tftpd-hpa picocom
+sudo mkdir -p /srv/tftp
+# Copy .itb / .fip / .bin files into /srv/tftp, ensure /etc/default/tftpd-hpa uses TFTP_DIRECTORY="/srv/tftp"
+sudo systemctl restart tftpd-hpa
+
+sudo ip addr flush dev eth0
+sudo ip addr add 192.168.1.254/24 dev eth0
+sudo ip link set eth0 up</code></pre></div>
+
+<h3 id="tftp-windows">Windows (<code>Tftpd64</code> + <code>PuTTY</code>)</h3>
+<ul>
+  <li>Download <a href="https://p.junod.nu/tftpd64/" target="_blank" rel="noopener">Tftpd64</a>, run as <strong>Administrator</strong>, and allow it through Windows Firewall (UDP port 69).</li>
+  <li>In the <strong>Tftp Server</strong> tab, set <strong>Current Directory</strong> to the folder containing your firmware files and <strong>Server interfaces</strong> to the LAN adapter with IP <code>192.168.1.254</code> (not <code>127.0.0.1</code>).</li>
+  <li>Configure a saved <strong>PuTTY</strong> Serial session: your COM port (check Device Manager), speed <code>115200</code>, 8N1, Flow control None.</li>
+</ul>
+
+<h2 id="mtk-uartboot">Step 2: RAM-Boot U-Boot via <code>mtk_uartboot</code> (Unbrick)</h2>
+<p>
+  If U-Boot on NAND is intact, simply open <code>picocom -b 115200 /dev/ttyUSB0</code> (or PuTTY), power on the router, and press any key at <code>Hit any key to stop autoboot</code>.
+</p>
+<p>
+  If the router is <strong>bricked</strong> (only BootROM or silent serial), use <code>mtk_uartboot</code> (<a href="https://github.com/quytttb/mtk_uartboot/releases" target="_blank" rel="noopener">Windows/Linux releases</a>) with the NR3053 RAM BL2 payload <code>bl2-viettel-nr3053-ram.bin</code> (from <a href="https://github.com/quytttb/bl-mt798x-dhcpd/releases" target="_blank" rel="noopener">quytttb/bl-mt798x-dhcpd Releases</a>) and <code>immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip</code>.
+</p>
+
+<div class="callout warn">
+  <div class="callout-title">Two-Window Workflow (Only One App Can Hold the Serial Port)</div>
+  Place two windows side by side: <strong>Window 1</strong> for <code>mtk_uartboot</code> and <strong>Window 2</strong> for <code>picocom</code> / <code>PuTTY</code> (prepared, <strong>not yet connected</strong>). As soon as Window 1 prints <code>FIP received</code>, press <code>Ctrl+C</code> in Window 1 and immediately connect Window 2 within 1–2 seconds!
+</div>
+
+<h3 id="uartboot-linux">Linux Command</h3>
+<div class="code-block"><pre><code># Window 2 (ready, DO NOT press Enter yet):
+#   sudo picocom -b 115200 /dev/ttyUSB0
+
+# Window 1 (unplug router first, run command, then plug power in on "Handshake..."):
+sudo ./mtk_uartboot -s /dev/ttyUSB0 \
+  -p bl2-viettel-nr3053-ram.bin \
+  -f immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip \
+  -a</code></pre></div>
+
+<h3 id="uartboot-windows">Windows Command (CMD)</h3>
+<div class="code-block"><pre><code>mtk_uartboot.exe -s COM3 -p bl2-viettel-nr3053-ram.bin -a -f immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip</code></pre></div>
+<p>
+  If your USB-TTL adapter hangs at 921600 baud, append <code>--bl2-load-baudrate 115200</code>. Remember that <code>mtk_uartboot</code> runs U-Boot <strong>entirely in RAM</strong> without modifying NAND until you write partitions yourself.
+</p>
+
+<h2 id="tftp-ram-test">Option A: Boot <code>initramfs-recovery.itb</code> in RAM (Non-Destructive)</h2>
+<p>Place <code>immortalwrt-mediatek-filogic-viettel_nr3053-initramfs-recovery.itb</code> in your TFTP folder, then in U-Boot either run <code>bootmenu</code> → <strong><code>[2] Boot system via TFTP</code></strong> or type:</p>
+<div class="code-block"><pre><code>setenv serverip 192.168.1.254
+setenv ipaddr   192.168.1.1
+tftpboot 0x46000000 immortalwrt-mediatek-filogic-viettel_nr3053-initramfs-recovery.itb
+bootm 0x46000000#config-1</code></pre></div>
+<p>ImmortalWrt boots cleanly in RAM. Power-cycling reverts the router to whatever is stored in NAND.</p>
+
+<h2 id="tftp-nand-install">Option B: Permanent Install &amp; Bootloader Recovery</h2>
+<p>Place <code>immortalwrt-mediatek-filogic-viettel_nr3053-squashfs-sysupgrade.itb</code> in your TFTP folder. In U-Boot, run <code>bootmenu</code> → <strong><code>[5] Load production system via TFTP then write to NAND</code></strong>, or manually:</p>
+<div class="code-block"><pre><code>setenv serverip 192.168.1.254
+setenv ipaddr   192.168.1.1
+tftpboot 0x46000000 immortalwrt-mediatek-filogic-viettel_nr3053-squashfs-sysupgrade.itb
+
+ubi part ubi
+ubi check fit &amp;&amp; ubi remove fit
+ubi create fit $filesize dynamic
+ubi write 0x46000000 fit $filesize
+ubi read 0x46000000 fit &amp;&amp; bootm 0x46000000#config-1</code></pre></div>
+
+<h3 id="reflash-fip-bl2">Re-Flashing FIP (or BL2) Over TFTP</h3>
+<div class="code-block"><pre><code># Restore/upgrade FIP (bootmenu [7])
+tftpboot 0x46000000 immortalwrt-mediatek-filogic-viettel_nr3053-bl31-uboot.fip
+mtd erase FIP
+mtd write FIP 0x46000000
+
+# Only if BL2 on NAND is corrupted or incompatible (bootmenu [8] — HIGH RISK)
+tftpboot 0x46000000 immortalwrt-mediatek-filogic-viettel_nr3053-preloader.bin
+mtd erase BL2
+mtd write BL2 0x46000000</code></pre></div>
+
+<h3 id="nmbm-cleanup">Clearing Legacy NMBM Conflicts</h3>
+<p>If UBI fails to attach due to a leftover stock NMBM table, format the UBI partition from the U-Boot console:</p>
+<div class="code-block"><pre><code>ubi part ubi
+run ubi_format</code></pre></div>
+<p>The router resets automatically; then re-run Option B (or Web Failsafe) to write the firmware.</p>

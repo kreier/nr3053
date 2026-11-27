@@ -1,0 +1,119 @@
+<h1>Wi-Fi Roaming (802.11r/k/v) &amp; SQM Anti-Bufferbloat</h1>
+<p class="lead">
+  Practical post-install tuning for <strong>ImmortalWrt 25.12</strong> on the Viettel SDMC NR3053
+  (adapted from <a href="https://gist.github.com/hashcott/68e337ac52f3410e6d19a177fb5bc1bf" target="_blank" rel="noopener">hashcott's NR3053 optimization gist</a>)
+  to achieve seamless 2.4 GHz ↔ 5 GHz roaming and <strong>Waveform Bufferbloat Grade A</strong>.
+</p>
+
+<h2 id="install-packages">Step 1: Install SQM &amp; Verify Full <code>wpad</code></h2>
+<p>
+  ImmortalWrt 25.12 uses the <code>apk</code> package manager. Connect via <code>ssh root@192.168.1.1</code> and install SQM:
+</p>
+<div class="code-block"><pre><code>apk update
+apk add luci-app-sqm sqm-scripts</code></pre></div>
+
+<p>
+  Fast roaming (802.11r/k/v) requires a full <code>wpad</code> build (<code>wpad-openssl</code> or <code>wpad-mbedtls</code>), not <code>wpad-basic-*</code>. ImmortalWrt 25.12 for MT7981 usually pre-installs <code>wpad-openssl</code>; verify with:
+</p>
+<div class="code-block"><pre><code>apk info | grep wpad
+# If only wpad-basic-* is installed, swap it:
+# apk del wpad-basic-mbedtls &amp;&amp; apk add wpad-openssl &amp;&amp; reboot</code></pre></div>
+
+<h2 id="wifi-roaming">Step 2: Configure Wi-Fi + 802.11r/k/v Roaming</h2>
+<p>
+  Use the <strong>same SSID and password</strong> on both 2.4 GHz and 5 GHz with WPA2 (<code>psk2</code>, best roaming compatibility across phones and laptops), non-DFS channel 36 (HE80) on 5 GHz, and channel 6 (HE20) on 2.4 GHz. Edit <code>SSID</code> and <code>PASS</code> below and paste into SSH:
+</p>
+<div class="code-block"><pre><code># ==== EDIT YOUR WIFI CREDENTIALS ====
+SSID="YourWiFiName"
+PASS="YourStrongPassword"
+# ====================================
+
+for i in $(uci show wireless | grep "=wifi-iface" | cut -d= -f1); do
+  uci set $i.ssid="$SSID"
+  uci set $i.key="$PASS"
+  uci set $i.encryption='psk2'          # WPA2 — best 802.11r compatibility
+  uci set $i.ieee80211r='1'             # Fast Transition (802.11r)
+  uci set $i.ft_over_ds='0'
+  uci set $i.ft_psk_generate_local='1'
+  uci set $i.mobility_domain='a1b2'     # Must match across both bands
+  uci set $i.ieee80211k='1'             # Radio Resource Measurement (802.11k)
+  uci set $i.bss_transition='1'         # BSS Transition Management (802.11v)
+  uci set $i.disassoc_low_ack='0'       # Prevent prematurely kicking weak clients
+  uci -q delete $i.ocv
+done
+
+for r in $(uci show wireless | grep "=wifi-device" | cut -d= -f1); do
+  band=$(uci -q get $r.band)
+  uci set $r.disabled='0'
+  if [ "$band" = "2g" ]; then
+    uci set $r.channel='6'              # Non-overlapping 2.4 GHz channel (1/6/11)
+    uci set $r.htmode='HE20'            # 20 MHz is most stable on 2.4 GHz
+  elif [ "$band" = "5g" ]; then
+    uci set $r.channel='36'             # Non-DFS 5 GHz channel (36/40/44/48)
+    uci set $r.htmode='HE80'            # 80 MHz balances speed &amp; stability
+  fi
+done
+
+uci commit wireless
+wifi reload</code></pre></div>
+
+<p>Verify both radios received identical roaming parameters:</p>
+<div class="code-block"><pre><code>uci show wireless | grep -E "ssid|encryption|ieee80211r|ieee80211k|bss_transition|mobility"
+iwinfo</code></pre></div>
+
+<h2 id="sqm-cake">Step 3: Configure SQM/cake Anti-Bufferbloat</h2>
+<p>First confirm your WAN interface name (typically <code>wan</code> or <code>pppoe-wan</code>):</p>
+<div class="code-block"><pre><code>ip route show default</code></pre></div>
+
+<div class="callout warn">
+  <div class="callout-title">MT7981 CPU Ceiling for SQM/cake</div>
+  <code>cake</code> runs on the CPU (single-threaded per direction). On the MT7981B, <code>cake</code> comfortably shapes up to <strong>~250–300 Mbps per direction</strong>. Set download/upload limits to ~85–90% of your ISP speed, capped around 250–300 Mbps so <code>sirq</code> stays below ~30%.
+</div>
+
+<div class="code-block"><pre><code>[ -z "$(uci -q show sqm.@queue[0])" ] &amp;&amp; uci add sqm queue &gt;/dev/null
+uci set sqm.@queue[0].enabled='1'
+uci set sqm.@queue[0].interface='wan'        # Change if using pppoe-wan
+uci set sqm.@queue[0].download='250000'      # kbit/s (250 Mbps — tune to your line)
+uci set sqm.@queue[0].upload='300000'        # kbit/s (300 Mbps)
+uci set sqm.@queue[0].qdisc='cake'
+uci set sqm.@queue[0].script='piece_of_cake.qos'
+uci set sqm.@queue[0].linklayer='ethernet'
+uci set sqm.@queue[0].overhead='44'
+uci commit sqm
+/etc/init.d/sqm enable
+/etc/init.d/sqm restart</code></pre></div>
+
+<h3 id="disable-offloading">Disable Flow Offloading (Required for SQM)</h3>
+<p>Software and hardware flow offloading bypass SQM queuing — disable both so <code>cake</code> actually shapes traffic:</p>
+<div class="code-block"><pre><code>uci set firewall.@defaults[0].flow_offloading='0'
+uci set firewall.@defaults[0].flow_offloading_hw='0'
+uci commit firewall
+/etc/init.d/firewall restart
+
+# Confirm cake is active on both upload (dev wan) and download (dev ifb4wan)
+tc qdisc show | grep cake</code></pre></div>
+
+<h2 id="verify-grade-a">Step 4: Tune &amp; Verify Grade A</h2>
+<ol>
+  <li>Run the <a href="https://www.waveform.com/tools/bufferbloat" target="_blank" rel="noopener">Waveform Bufferbloat Test</a> while watching <code>top -d 1</code> in an SSH terminal.</li>
+  <li>Aim for <strong>Download/Upload Active latency &lt; +20 ms</strong> and CPU <code>idle &gt; 15–20%</code> (<code>sirq &lt; 30%</code>).</li>
+  <li>If active latency spikes in one direction, lower that direction's bandwidth by 20–30 Mbps (e.g., <code>uci set sqm.@queue[0].download='250000' &amp;&amp; uci commit sqm &amp;&amp; /etc/init.d/sqm restart</code>) and re-test.</li>
+</ol>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Setting</th>
+        <th>Reference Value (Achieved Grade A)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Wi-Fi Security &amp; Roaming</strong></td><td>WPA2 (<code>psk2</code>) · 802.11r + 802.11k + 802.11v (same SSID/pass)</td></tr>
+      <tr><td><strong>Channels / Width</strong></td><td>2.4 GHz: Ch 6 (<code>HE20</code>) · 5 GHz: Ch 36 non-DFS (<code>HE80</code>)</td></tr>
+      <tr><td><strong>SQM Discipline</strong></td><td><code>cake</code> / <code>piece_of_cake.qos</code> · Ethernet overhead 44</td></tr>
+      <tr><td><strong>SQM Shaping Limits</strong></td><td>250 Mbps down / 300 Mbps up (adjust to your ISP speed)</td></tr>
+      <tr><td><strong>Flow Offloading</strong></td><td>Disabled (<code>flow_offloading='0'</code>, <code>flow_offloading_hw='0'</code>)</td></tr>
+    </tbody>
+  </table>
+</div>
